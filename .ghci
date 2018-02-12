@@ -1,0 +1,5 @@
+:set -XOverloadedStrings
+:set -XScopedTypeVariables
+
+import Servant.API.BasicAuth (BasicAuthData(..))
+import Data.Aeson (Value)
