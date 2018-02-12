@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 module ArangoDB.Utils.Client where
 
@@ -17,6 +18,24 @@ data ArangoClientConfig = ArangoClientConfig
   , arangoPort     :: Int
   , arangoDatabase :: Maybe String
   , arangoAuth     :: Maybe BasicAuthData
+  }
+
+-- | Default ArangoDB client configuration.
+--
+-- @
+-- defaultArangoClientConfig = ArangoClientConfig
+--   { 'arangoHost'     = "localhost"
+--   , 'arangoPort'     = 8529
+--   , 'arangoDatabase' = Nothing
+--   , 'arangoAuth'     = Just ('BasicAuthData' "root" "")
+--   }
+-- @
+defaultArangoClientConfig :: ArangoClientConfig
+defaultArangoClientConfig = ArangoClientConfig
+  { arangoHost     = "localhost"
+  , arangoPort     = 8529
+  , arangoDatabase = Nothing
+  , arangoAuth     = Just (BasicAuthData "root" "")
   }
 
 -- | ArangoDB HTTP API 'BaseUrl'.
@@ -44,6 +63,9 @@ runArangoClientM config m = do
 
 arangoClient :: (HasClient ArangoClientM api) => Proxy api -> Client ArangoClientM api
 arangoClient api = api `clientIn` (Proxy :: Proxy ArangoClientM)
+
+runDefault :: ArangoClientM a -> IO (Either ServantError a)
+runDefault = runArangoClientM defaultArangoClientConfig
 
 newtype ArangoClientT m a = ArangoClientT (ReaderT (Maybe BasicAuthData) m a)
   deriving (Functor, Applicative, Monad)
