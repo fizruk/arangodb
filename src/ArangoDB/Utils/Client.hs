@@ -40,8 +40,8 @@ defaultArangoClientConfig = ArangoClientConfig
 
 -- | ArangoDB HTTP API 'BaseUrl'.
 --
--- >>> showBaseUrl $ arangoBaseUrl "example.com" 8529 "MyDB"
--- "http://example.com:8529/_db/MyDB/_api"
+-- >>> showBaseUrl $ arangoBaseUrl defaultArangoClientConfig
+-- "http://localhost:8529/_api"
 arangoBaseUrl :: ArangoClientConfig -> BaseUrl
 arangoBaseUrl ArangoClientConfig{..} = BaseUrl Http arangoHost arangoPort path
   where
