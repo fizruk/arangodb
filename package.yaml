@@ -29,6 +29,7 @@ dependencies:
 - servant-client
 - text
 - template-haskell
+- unordered-containers
 - http-client
 
 ghc-options:

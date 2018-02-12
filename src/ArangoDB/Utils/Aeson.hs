@@ -19,4 +19,3 @@ aesonOptions prefix = defaultOptions
 -- | Derive 'ToJSON' and 'FromJSON' with Template Haskell using 'aesonOptions'.
 deriveJSON' :: Name -> Q [Dec]
 deriveJSON' typeName = deriveJSON (aesonOptions (nameBase typeName)) typeName
-
