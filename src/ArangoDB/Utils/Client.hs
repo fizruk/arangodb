@@ -15,7 +15,7 @@ import Servant.Client
 data ArangoClientConfig = ArangoClientConfig
   { arangoHost     :: String
   , arangoPort     :: Int
-  , arangoDatabase :: String
+  , arangoDatabase :: Maybe String
   , arangoAuth     :: Maybe BasicAuthData
   }
 
@@ -26,7 +26,9 @@ data ArangoClientConfig = ArangoClientConfig
 arangoBaseUrl :: ArangoClientConfig -> BaseUrl
 arangoBaseUrl ArangoClientConfig{..} = BaseUrl Http arangoHost arangoPort path
   where
-    path = "/_db/" <> arangoDatabase <> "/_api"
+    path = case arangoDatabase of
+      Nothing -> "/_api"
+      Just db -> "/_db/" <> db <> "/_api"
 
 -- | 'ClientEnv' for ArangoDB HTTP API.
 arangoClientEnv :: ArangoClientConfig -> IO ClientEnv

@@ -2,6 +2,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeApplications #-}
+-- |
+-- See <https://docs.arangodb.com/3.3/HTTP/Document/>.
 module ArangoDB.Documents where
 
 import Data.Aeson (FromJSON)
