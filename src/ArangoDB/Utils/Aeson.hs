@@ -14,6 +14,7 @@ aesonOptions prefix = defaultOptions
   { fieldLabelModifier      = nameModifier prefix
   , constructorTagModifier  = nameModifier prefix
   , sumEncoding             = ObjectWithSingleField
+  , omitNothingFields       = True
   }
 
 -- | Derive 'ToJSON' and 'FromJSON' with Template Haskell using 'aesonOptions'.
