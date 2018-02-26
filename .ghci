@@ -3,3 +3,6 @@
 
 import Servant.API.BasicAuth (BasicAuthData(..))
 import Data.Aeson (Value)
+
+import Text.Show.Pretty (pPrint)
+:set -interactive-print pPrint
