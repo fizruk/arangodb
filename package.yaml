@@ -22,6 +22,7 @@ description:         Please see the README on Github at <https://github.com/fizr
 dependencies:
 - base >= 4.7 && < 5
 - aeson
+- aeson-injector
 - generic-deriving
 - http-api-data
 - mtl

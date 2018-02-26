@@ -6,6 +6,7 @@
 -- See <https://docs.arangodb.com/3.3/HTTP/Collection/>.
 module ArangoDB.Collections where
 
+import Data.Aeson.WithField (WithFields)
 import Data.Proxy
 import Data.String
 import Servant.API
@@ -80,9 +81,10 @@ type GetCollectionProperties
   = "collection"
  :> Capture "collection-name" CollectionName
  :> "properties"
- :> Get '[JSON] CollectionProperties
+ :> Get '[JSON] (CollectionInfo `WithFields` CollectionProperties)
 
-getCollectionProperties :: CollectionName -> ArangoClientM CollectionProperties
+getCollectionProperties
+  :: CollectionName -> ArangoClientM (CollectionInfo `WithFields` CollectionProperties)
 getCollectionProperties = arangoClient (Proxy @GetCollectionProperties)
 
 -- Template Haskell derivations
