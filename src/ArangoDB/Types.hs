@@ -14,12 +14,12 @@ import qualified Data.HashMap.Strict as HashMap
 import Data.String (IsString)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Generics.Deriving.Eq (GEq)
-import Generics.Deriving.Enum (fromEnumDefault, toEnumDefault)
-import GHC.Generics (Generic)
+import Generics.SOP (Generic)
+import qualified GHC.Generics as GHC
 import Web.HttpApiData (ToHttpApiData)
 
 import ArangoDB.Utils.Aeson
+import ArangoDB.Utils.Enum
 
 -- * Collections
 
@@ -36,17 +36,17 @@ data CollectionStatus
   | CollectionUnloading
   | CollectionDeleted
   | CollectionLoading
-  deriving (Generic, GEq, Show, Bounded)
+  deriving (GHC.Generic, Generic, Show, Bounded)
 
 -- |
 -- >>> map toEnum [1..6] :: [CollectionStatus]
--- [CollectionNewBorn,CollectionUnloading,CollectionUnloaded,CollectionDeleted,CollectionLoaded,CollectionLoading]
+-- [CollectionNewBorn,CollectionUnloaded,CollectionLoaded,CollectionUnloading,CollectionDeleted,CollectionLoading]
 --
 -- >>> map fromEnum [CollectionNewBorn .. CollectionLoading]
 -- [1,2,3,4,5,6]
 instance Enum CollectionStatus where
-  fromEnum = succ . fromEnumDefault
-  toEnum = toEnumDefault . pred
+  fromEnum = (+ 1) . gfromEnum
+  toEnum = gtoEnum . (subtract 1)
 
 -- |
 -- >>> decode "[1, 2, 3, 4, 5, 6]" :: Maybe [CollectionStatus]
@@ -66,7 +66,7 @@ instance ToJSON CollectionStatus where
 data CollectionType
   = DocumentCollection
   | EdgeCollection
-  deriving (Generic, GEq, Show, Bounded)
+  deriving (GHC.Generic, Generic, Show, Bounded)
 
 -- |
 -- >>> map toEnum [2, 3] :: [CollectionType]
@@ -75,8 +75,8 @@ data CollectionType
 -- >>> map fromEnum [DocumentCollection, EdgeCollection]
 -- [2,3]
 instance Enum CollectionType where
-  fromEnum = (+2) . fromEnumDefault
-  toEnum   = toEnumDefault . (subtract 2)
+  fromEnum = (+2) . gfromEnum
+  toEnum   = gtoEnum . (subtract 2)
 
 -- |
 -- >>> decode "[2, 3]" :: Maybe [CollectionType]

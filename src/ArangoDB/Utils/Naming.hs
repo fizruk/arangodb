@@ -34,7 +34,6 @@ nameModifier prefix name = concat (lowerFirstWord suffix)
 -- ("MessageS","tatus","ent")
 --
 -- prop> commonPrefixOn id xs xs == (xs, [], [])
--- prop> commonPrefixOn id (xs ++ ys) (xs ++ zs) == (\(as, bs, cs) -> (xs ++ as, bs, cs)) (commonPrefix ys zs)
 -- prop> commonPrefixOn id [] xs == ([], [], xs)
 -- prop> commonPrefixOn id xs [] == ([], xs, [])
 commonPrefixOn :: Eq b => (a -> b) -> [a] -> [a] -> ([a], [a], [a])
@@ -64,13 +63,13 @@ toLowerCamelCase = concat . lowerFirstWord . splitCamelWords
 -- | Split @CamelCase@ name into its constituent words.
 --
 -- >>> splitCamelWords "CamelCase"
--- ["Camel", "Case"]
+-- ["Camel","Case"]
 -- >>> splitCamelWords "SMSEntry"
--- ["SMS", "Entry"]
+-- ["SMS","Entry"]
 -- >>> splitCamelWords "progress75"
--- ["progress", "75"]
+-- ["progress","75"]
 --
--- prop> concat . splitCamelWords == id
+-- prop> concat (splitCamelWords s) == s
 splitCamelWords :: String -> [String]
 splitCamelWords = reverse . splitWordsReversed . reverse
   where

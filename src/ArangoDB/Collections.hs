@@ -14,6 +14,9 @@ import ArangoDB.Types
 import ArangoDB.Utils.Aeson
 import ArangoDB.Utils.Client
 
+-- $setup
+-- >>> :set -XOverloadedStrings
+
 -- * Creating
 
 -- ** Create collection
