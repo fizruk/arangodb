@@ -29,7 +29,7 @@ dependencies:
 - base >= 4.7 && < 5
 - aeson
 - aeson-injector
-- generic-deriving
+- generics-sop
 - http-api-data
 - mtl
 - servant
