@@ -101,6 +101,27 @@ data CollectionInfo = CollectionInfo
   , collectionIsSystem :: Bool
   } deriving (Show)
 
+data KeyGeneratorType
+  = KeyGeneratorTraditional
+  | KeyGeneratorAutoincrement
+  deriving (Show)
+
+data CollectionKeyOptions = CollectionKeyOptions
+  { collectionKeyType          :: KeyGeneratorType
+  , collectionKeyAllowUserKeys :: Bool
+  } deriving (Show)
+
+data CollectionProperties = CollectionProperties
+  { collectionWaitForSync       :: Bool
+  , collectionDoCompact         :: Bool
+  , collectionJournalSize       :: Int
+  , collectionKeyOptions        :: CollectionKeyOptions
+  , collectionIsVolatile        :: Bool
+  , collectionNumberOfShards    :: Maybe Int
+  , collectionShardKeys         :: Maybe [Text]
+  , collectionReplicationFactor :: Maybe Int
+  } deriving (Show)
+
 -- * Documents
 
 newtype DocumentId = DocumentId Text
@@ -148,3 +169,6 @@ instance FromJSON a => FromJSON (Document a) where
 
 -- Template Haskell derivations
 deriveJSON' ''CollectionInfo
+deriveJSON' ''KeyGeneratorType
+deriveJSON' ''CollectionKeyOptions
+deriveJSON' ''CollectionProperties

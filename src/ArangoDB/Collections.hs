@@ -69,10 +69,21 @@ instance IsString CreateCollectionRequest where
 type GetCollection
   = "collection"
  :> Capture "collection-name" CollectionName
- :> Get '[JSON] Collection
+ :> Get '[JSON] CollectionInfo
 
-getCollection :: CollectionName -> ArangoClientM Collection
+getCollection :: CollectionName -> ArangoClientM CollectionInfo
 getCollection = arangoClient (Proxy @GetCollection)
+
+-- ** Read properties of a collection
+
+type GetCollectionProperties
+  = "collection"
+ :> Capture "collection-name" CollectionName
+ :> "properties"
+ :> Get '[JSON] CollectionProperties
+
+getCollectionProperties :: CollectionName -> ArangoClientM CollectionProperties
+getCollectionProperties = arangoClient (Proxy @GetCollectionProperties)
 
 -- Template Haskell derivations
 deriveJSON' ''CreateCollectionRequest
