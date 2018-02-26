@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3a683b2e8c07603852df951abd0311635911c61f52191a61c1ac3d55104feb8a
+-- hash: 33bdf831fc665c38b34ac6534d82f613ebf67f237656e42a0909f35ecb938271
 
 name:           arangodb
 version:        0.1.0
@@ -44,7 +44,7 @@ library
     , http-client
     , mtl
     , servant
-    , servant-client
+    , servant-client ==0.12.*
     , servant-client-core
     , template-haskell
     , text
@@ -78,7 +78,7 @@ test-suite arangodb-test
     , http-client
     , mtl
     , servant
-    , servant-client
+    , servant-client ==0.12.*
     , servant-client-core
     , template-haskell
     , text
@@ -105,7 +105,7 @@ test-suite doctests
     , http-client
     , mtl
     , servant
-    , servant-client
+    , servant-client ==0.12.*
     , servant-client-core
     , template-haskell
     , text
