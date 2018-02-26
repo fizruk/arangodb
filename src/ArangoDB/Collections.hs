@@ -150,3 +150,24 @@ getCollectionCount' name = extractCount <$> getCollectionCount name
 
 -- Template Haskell derivations
 deriveJSON' ''CreateCollectionRequest
+
+-- ** Read all collections
+
+type GetAllCollections
+  = "collection"
+ :> QueryParam "excludeSystem" Bool
+ :> Get '[JSON] (OnlyField "result" [CollectionInfo])
+
+-- | Get all collections (including system collections).
+getAllCollections :: ArangoClientM [CollectionInfo]
+getAllCollections = getAllCollectionsClient Nothing
+
+-- | Get all non-system collections.
+getAllNonSystemCollections :: ArangoClientM [CollectionInfo]
+getAllNonSystemCollections = getAllCollectionsClient (Just True)
+
+getAllCollectionsClient
+  :: Maybe Bool   -- ^ Exclude system collections?
+  -> ArangoClientM [CollectionInfo]
+getAllCollectionsClient excludeSystem
+  = unOnlyField <$> arangoClient (Proxy @GetAllCollections) excludeSystem
