@@ -21,9 +21,11 @@ import ArangoDB.Utils.Client
 type CreateCollection
   = "collection"
  :> ReqBody '[JSON] CreateCollectionRequest
- :> Post '[JSON] NoContent
+ :> Post '[JSON] (CollectionInfo `WithFields` CollectionProperties)
 
-createCollection :: CreateCollectionRequest -> ArangoClientM NoContent
+createCollection
+  :: CreateCollectionRequest
+  -> ArangoClientM (CollectionInfo `WithFields` CollectionProperties)
 createCollection = arangoClient (Proxy @CreateCollection)
 
 data CreateCollectionRequest = CreateCollectionRequest
