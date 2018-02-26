@@ -1,5 +1,7 @@
 # arangodb
 
+[![Build Status](https://travis-ci.org/fizruk/arangodb.svg?branch=master)](https://travis-ci.org/fizruk/arangodb)
+
 ArangoDB HTTP API bindings.
 
 ## Try with GHCi
