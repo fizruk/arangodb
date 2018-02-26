@@ -6,7 +6,7 @@
 -- See <https://docs.arangodb.com/3.3/HTTP/Collection/>.
 module ArangoDB.Collections where
 
-import Data.Aeson.WithField (WithFields, OnlyField(..))
+import Data.Aeson.WithField (WithFields(..), OnlyField(..))
 import Data.Proxy
 import Data.String
 import Servant.API
@@ -123,6 +123,30 @@ type GetCollectionProperties
 getCollectionProperties
   :: CollectionName -> ArangoClientM (CollectionInfo `WithFields` CollectionProperties)
 getCollectionProperties = arangoClient (Proxy @GetCollectionProperties)
+
+-- | Like 'getCollectionProperties' but returns just 'CollectionProperties'.
+getCollectionProperties' :: CollectionName -> ArangoClientM CollectionProperties
+getCollectionProperties' name = extractProperties <$> getCollectionProperties name
+  where
+    extractProperties (WithFields _ props) = props
+
+-- ** Return number of documents in a collection
+
+type GetCollectionCount
+  = "collection"
+ :> Capture "collection-name" CollectionName
+ :> "count"
+ :> Get '[JSON] (OnlyField "count" Integer `WithFields` CollectionInfo `WithFields` CollectionProperties)
+
+getCollectionCount
+  :: CollectionName -> ArangoClientM (OnlyField "count" Integer `WithFields` CollectionInfo `WithFields` CollectionProperties)
+getCollectionCount = arangoClient (Proxy @GetCollectionCount)
+
+-- | Like 'getCollectionCount' but returns just the count.
+getCollectionCount' :: CollectionName -> ArangoClientM Integer
+getCollectionCount' name = extractCount <$> getCollectionCount name
+  where
+    extractCount (WithFields (WithFields (OnlyField n) _) _) = n
 
 -- Template Haskell derivations
 deriveJSON' ''CreateCollectionRequest
