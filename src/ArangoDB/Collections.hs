@@ -80,11 +80,19 @@ type DropCollection
  :> QueryParam "isSystem" Bool
  :> Delete '[JSON] (OnlyField "id" CollectionId)
 
-dropCollection
+-- | Drop a regular (non-system) collection.
+dropCollection :: CollectionName -> ArangoClientM CollectionId
+dropCollection = flip dropCollectionClient Nothing
+
+-- | Drop a system collection.
+dropSystemCollection :: CollectionName -> ArangoClientM CollectionId
+dropSystemCollection = flip dropCollectionClient (Just True)
+
+dropCollectionClient
   :: CollectionName
   -> Maybe Bool      -- ^ Is this a system collection?
   -> ArangoClientM CollectionId
-dropCollection name isSystem = unOnlyField
+dropCollectionClient name isSystem = unOnlyField
   <$> arangoClient (Proxy @DropCollection) name isSystem
 
 -- ** Truncate a collection
