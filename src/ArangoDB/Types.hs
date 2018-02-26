@@ -111,6 +111,9 @@ data CollectionKeyOptions = CollectionKeyOptions
   , collectionKeyAllowUserKeys :: Bool
   } deriving (Show)
 
+newtype DocumentAttrName = DocumentAttrName Text
+  deriving newtype (IsString, Show, ToJSON, FromJSON)
+
 data CollectionProperties = CollectionProperties
   { collectionWaitForSync       :: Bool
   , collectionDoCompact         :: Bool
@@ -118,7 +121,7 @@ data CollectionProperties = CollectionProperties
   , collectionKeyOptions        :: CollectionKeyOptions
   , collectionIsVolatile        :: Bool
   , collectionNumberOfShards    :: Maybe Int
-  , collectionShardKeys         :: Maybe [Text]
+  , collectionShardKeys         :: Maybe [DocumentAttrName]
   , collectionReplicationFactor :: Maybe Int
   } deriving (Show)
 
