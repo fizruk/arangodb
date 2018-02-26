@@ -6,7 +6,7 @@
 -- See <https://docs.arangodb.com/3.3/HTTP/Collection/>.
 module ArangoDB.Collections where
 
-import Data.Aeson.WithField (WithFields)
+import Data.Aeson.WithField (WithFields, OnlyField(..))
 import Data.Proxy
 import Data.String
 import Servant.API
@@ -71,6 +71,34 @@ instance IsString CreateCollectionRequest where
       isSystem = case name of
         '_':_ -> True
         _     -> False
+
+-- ** Drop a collection
+
+type DropCollection
+  = "collection"
+ :> Capture "collection-name" CollectionName
+ :> QueryParam "isSystem" Bool
+ :> Delete '[JSON] (OnlyField "id" CollectionId)
+
+dropCollection
+  :: CollectionName
+  -> Maybe Bool      -- ^ Is this a system collection?
+  -> ArangoClientM CollectionId
+dropCollection name isSystem = unOnlyField
+  <$> arangoClient (Proxy @DropCollection) name isSystem
+
+-- ** Truncate a collection
+
+type TruncateCollection
+  = "collection"
+ :> Capture "collection-name" CollectionName
+ :> "truncate"
+ :> Put '[JSON] CollectionInfo
+
+truncateCollection
+  :: CollectionName
+  -> ArangoClientM CollectionInfo
+truncateCollection = arangoClient (Proxy @TruncateCollection)
 
 -- * Getting information
 
