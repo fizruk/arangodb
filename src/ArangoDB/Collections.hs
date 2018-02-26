@@ -31,32 +31,39 @@ createCollection = arangoClient (Proxy @CreateCollection)
 data CreateCollectionRequest = CreateCollectionRequest
   { createCollectionJournalSize          :: Maybe Int
   , createCollectionReplicationFactor    :: Maybe Int
---   , createCollectionKeyOptions           :: Maybe CollectionKeyOptions
+  , createCollectionKeyOptions           :: Maybe CollectionKeyOptions
   , createCollectionName                 :: CollectionName
   , createCollectionWaitForSync          :: Maybe Bool
   , createCollectionDoCompact            :: Maybe Bool
   , createCollectionIsVolatile           :: Maybe Bool
---   , createCollectionShardKeys            :: Maybe CollectionShardKeys
+  , createCollectionShardKeys            :: Maybe [DocumentAttrName]
   , createCollectionNumberOfShards       :: Maybe Int
   , createCollectionIsSystem             :: Maybe Bool
---   , createCollectionType                 :: Maybe CollectionType
+  , createCollectionType                 :: Maybe CollectionType
   , createCollectionIndexBuckets         :: Maybe Int
   , createCollectionDistributeShardsLike :: Maybe CollectionName
   } deriving (Show)
 
+-- | System collections start with an underscore:
+--
+-- >>> createCollectionIsSystem "_example"
+-- Just True
+--
+-- >>> createCollectionIsSystem "example"
+-- Just False
 instance IsString CreateCollectionRequest where
   fromString name = CreateCollectionRequest
     { createCollectionJournalSize          = Nothing
     , createCollectionReplicationFactor    = Nothing
-  --   , createCollectionKeyOptions           = Nothing
+    , createCollectionKeyOptions           = Nothing
     , createCollectionName                 = fromString name
     , createCollectionWaitForSync          = Nothing
     , createCollectionDoCompact            = Nothing
     , createCollectionIsVolatile           = Nothing
-  --   , createCollectionShardKeys            = Nothing
+    , createCollectionShardKeys            = Nothing
     , createCollectionNumberOfShards       = Nothing
     , createCollectionIsSystem             = Just isSystem
-  --   , createCollectionType                 = Nothing
+    , createCollectionType                 = Nothing
     , createCollectionIndexBuckets         = Nothing
     , createCollectionDistributeShardsLike = Nothing
     }
