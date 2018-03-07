@@ -47,7 +47,7 @@ library:
   source-dirs: src
 
 tests:
-  arangodb-test:
+  spec:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -56,6 +56,9 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - arangodb
+    - hspec
+    - QuickCheck
+    - HUnit
 
   doctests:
     source-dirs: test

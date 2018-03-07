@@ -24,10 +24,10 @@ import ArangoDB.Utils.Enum
 -- * Collections
 
 newtype CollectionId = CollectionId Text
-  deriving newtype (IsString, Show, ToJSON, FromJSON)
+  deriving newtype (IsString, Eq, Show, ToJSON, FromJSON)
 
 newtype CollectionName = CollectionName Text
-  deriving newtype (IsString, Show, ToHttpApiData, ToJSON, FromJSON)
+  deriving newtype (IsString, Eq, Show, ToHttpApiData, ToJSON, FromJSON)
 
 data CollectionStatus
   = CollectionNewBorn
@@ -36,7 +36,7 @@ data CollectionStatus
   | CollectionUnloading
   | CollectionDeleted
   | CollectionLoading
-  deriving (GHC.Generic, Generic, Show, Bounded)
+  deriving (GHC.Generic, Generic, Eq, Show, Bounded)
 
 -- |
 -- >>> map toEnum [1..6] :: [CollectionStatus]
@@ -66,7 +66,7 @@ instance ToJSON CollectionStatus where
 data CollectionType
   = DocumentCollection
   | EdgeCollection
-  deriving (GHC.Generic, Generic, Show, Bounded)
+  deriving (GHC.Generic, Generic, Eq, Show, Bounded)
 
 -- |
 -- >>> map toEnum [2, 3] :: [CollectionType]
@@ -99,20 +99,20 @@ data CollectionInfo = CollectionInfo
   , collectionStatus   :: CollectionStatus
   , collectionType     :: CollectionType
   , collectionIsSystem :: Bool
-  } deriving (Show)
+  } deriving (Eq, Show)
 
 data KeyGeneratorType
   = KeyGeneratorTraditional
   | KeyGeneratorAutoincrement
-  deriving (Show)
+  deriving (Eq, Show)
 
 data CollectionKeyOptions = CollectionKeyOptions
   { collectionKeyType          :: KeyGeneratorType
   , collectionKeyAllowUserKeys :: Bool
-  } deriving (Show)
+  } deriving (Eq, Show)
 
 newtype DocumentAttrName = DocumentAttrName Text
-  deriving newtype (IsString, Show, ToJSON, FromJSON)
+  deriving newtype (IsString, Eq, Show, ToJSON, FromJSON)
 
 data CollectionProperties = CollectionProperties
   { collectionWaitForSync       :: Bool
@@ -123,7 +123,7 @@ data CollectionProperties = CollectionProperties
   , collectionNumberOfShards    :: Maybe Int
   , collectionShardKeys         :: Maybe [DocumentAttrName]
   , collectionReplicationFactor :: Maybe Int
-  } deriving (Show)
+  } deriving (Eq, Show)
 
 -- * Documents
 
