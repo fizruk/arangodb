@@ -5,6 +5,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DataKinds #-}
+
 module ArangoDB.Types where
 
 import Control.Applicative ((<|>))
@@ -17,7 +19,7 @@ import qualified Data.Text as Text
 import Generics.SOP (Generic)
 import qualified GHC.Generics as GHC
 import Web.HttpApiData (ToHttpApiData)
-
+import           Data.Aeson.WithField  (OnlyField (..))
 import ArangoDB.Utils.Aeson
 import ArangoDB.Utils.Enum
 
@@ -169,6 +171,9 @@ instance FromJSON a => FromJSON (Document a) where
     <*> o .: "_key"
     <*> o .: "_rev"
     <*> (parseJSON js <|> o .: "value")
+
+
+type DeleteDocumentResponse = Document (OnlyField "old" (Maybe DocumentRevision))
 
 -- Template Haskell derivations
 deriveJSON' ''CollectionInfo

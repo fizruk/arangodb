@@ -1,16 +1,17 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeOperators       #-}
 -- |
 -- See <https://docs.arangodb.com/3.3/HTTP/Document/>.
 module ArangoDB.Documents where
 
-import Data.Aeson (FromJSON)
-import Data.Proxy
-import Servant.API
-import ArangoDB.Types
-import ArangoDB.Utils.Client
+import           ArangoDB.Types
+import           ArangoDB.Utils.Client
+import           Data.Aeson            (FromJSON)
+import           Data.Aeson.WithField  (OnlyField (..))
+import           Data.Proxy
+import           Servant.API
 
 type GetDocument a
   = "document"
@@ -23,3 +24,29 @@ getDocument = arangoClient (Proxy @(GetDocument a))
 
 getDocumentById :: FromJSON a => DocumentId -> ArangoClientM (Document a)
 getDocumentById = uncurry getDocument . splitDocumentId
+
+type DropDocument
+  = "document"
+ :> Capture "collection-name" CollectionName
+ :> Capture "document-key" DocumentKey
+ :> QueryParam "waitForSync" Bool
+ :> QueryParam "returnOld" Bool
+ :> QueryParam "silent" Bool
+ :> Header "If-Match" DocumentRevision
+ :> Delete '[JSON] (Document (OnlyField "old" (Maybe DocumentRevision)))
+
+
+type WaitForSync = Maybe Bool
+type ReturnOld   = Maybe Bool
+type Silent      = Maybe Bool
+type IfMatch     = Maybe DocumentRevision
+
+dropDocument :: CollectionName
+               -> DocumentKey
+               -> WaitForSync
+               -> ReturnOld
+               -> Silent
+               -> IfMatch
+               -> ArangoClientM DeleteDocumentResponse
+dropDocument = arangoClient (Proxy @DropDocument)
+
