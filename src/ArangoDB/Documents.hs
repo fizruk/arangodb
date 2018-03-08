@@ -50,3 +50,22 @@ dropDocument :: CollectionName
                -> ArangoClientM DeleteDocumentResponse
 dropDocument = arangoClient (Proxy @DropDocument)
 
+type PutDocument a
+    = "document"
+    :> Capture "collection-name" CollectionName
+    :> Capture "document-key" DocumentKey
+    :> QueryParam "waitForSync" Bool
+    :> QueryParam "returnOld" Bool
+    :> QueryParam "silent" Bool
+    :> Header "If-Match" DocumentRevision
+    :> Put '[JSON] (Document a)
+
+putDocument :: forall a. FromJSON a =>
+            CollectionName
+            -> DocumentKey
+            -> WaitForSync
+            -> ReturnOld
+            -> Silent
+            -> IfMatch
+            -> ArangoClientM (Document a)
+putDocument = arangoClient (Proxy @(PutDocument a))
