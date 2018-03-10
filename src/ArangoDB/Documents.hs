@@ -8,7 +8,7 @@ module ArangoDB.Documents where
 
 import           ArangoDB.Types
 import           ArangoDB.Utils.Client
-import           Data.Aeson            (FromJSON)
+import           Data.Aeson            (FromJSON, ToJSON)
 import           Data.Aeson.WithField  (OnlyField (..))
 import           Data.Proxy
 import           Servant.API
@@ -40,6 +40,7 @@ type WaitForSync = Maybe Bool
 type ReturnOld   = Maybe Bool
 type Silent      = Maybe Bool
 type IfMatch     = Maybe DocumentRevision
+type ReturnNew   = Maybe Bool
 
 dropDocument :: CollectionName
                -> DocumentKey
@@ -50,7 +51,7 @@ dropDocument :: CollectionName
                -> ArangoClientM DeleteDocumentResponse
 dropDocument = arangoClient (Proxy @DropDocument)
 
-type PutDocument a
+type UpdateDocument a
     = "document"
     :> Capture "collection-name" CollectionName
     :> Capture "document-key" DocumentKey
@@ -60,7 +61,7 @@ type PutDocument a
     :> Header "If-Match" DocumentRevision
     :> Put '[JSON] (Document a)
 
-putDocument :: forall a. FromJSON a =>
+updateDocument :: forall a. FromJSON a =>
             CollectionName
             -> DocumentKey
             -> WaitForSync
@@ -68,4 +69,25 @@ putDocument :: forall a. FromJSON a =>
             -> Silent
             -> IfMatch
             -> ArangoClientM (Document a)
-putDocument = arangoClient (Proxy @(PutDocument a))
+updateDocument = arangoClient (Proxy @(UpdateDocument a))
+
+type CreateDocument a
+  = "document"
+ :> Capture "collection-name" CollectionName
+ :> Capture "document-key" DocumentKey
+ :> QueryParam "waitForSync" Bool
+ :> QueryParam "returnNew" Bool
+ :> QueryParam "silent" Bool
+ :> ReqBody '[JSON] (Document a)
+ :> Post '[JSON] (Document a)
+
+
+createDocument :: forall a. (ToJSON a, FromJSON a) =>
+            CollectionName
+            -> DocumentKey
+            -> WaitForSync
+            -> ReturnNew
+            -> Silent
+            -> Document a
+            -> ArangoClientM (Document a)
+createDocument = arangoClient (Proxy @(CreateDocument a))
