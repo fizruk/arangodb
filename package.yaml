@@ -34,7 +34,7 @@ dependencies:
 - mtl
 - servant
 - servant-client-core
-- servant-client ==0.12.*
+- servant-client ==0.13.*
 - text
 - template-haskell
 - unordered-containers
