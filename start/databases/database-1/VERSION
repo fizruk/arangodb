@@ -1,1 +1,0 @@
-{"version":30400,"tasks":{"createAppsIndex":true,"createFrontend":true,"createJobsIndex":true,"createModules":true,"createRouting":true,"createUsersIndex":true,"insertRedirectionsAll":true,"setupAnalyzers":true,"setupAppBundles":true,"setupApps":true,"setupAqlFunctions":true,"setupGraphs":true,"setupJobs":true,"setupQueues":true,"setupUsers":true,"updateUserModels":true}}

@@ -1,1 +1,0 @@
-{"deduplicate":true,"fields":["queue","status","delayUntil"],"id":"37","sparse":true,"type":"skiplist","unique":true}
