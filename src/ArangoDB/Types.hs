@@ -22,6 +22,7 @@ import Web.HttpApiData (ToHttpApiData)
 import           Data.Aeson.WithField  (OnlyField (..))
 import ArangoDB.Utils.Aeson
 import ArangoDB.Utils.Enum
+import Control.Monad
 
 -- * Collections
 
@@ -174,6 +175,20 @@ instance FromJSON a => FromJSON (Document a) where
 
 
 type DeleteDocumentResponse = Document (OnlyField "old" (Maybe DocumentRevision))
+
+
+data CreateDocumentResponse = CreateDocumentResponse
+  { documentResponseId    :: DocumentId
+  , documentResponseKey   :: DocumentKey
+  , documentResponseRev   :: DocumentRevision
+  } deriving (Show)
+
+instance FromJSON CreateDocumentResponse where
+  parseJSON (Object v) =
+    CreateDocumentResponse <$> v .: "_id"
+                           <*> v .: "_key"
+                           <*> v .: "_rev"
+  parseJSON _ = mzero
 
 -- Template Haskell derivations
 deriveJSON' ''CollectionInfo

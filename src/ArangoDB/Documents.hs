@@ -13,12 +13,20 @@ import           Data.Aeson.WithField  (OnlyField (..))
 import           Data.Proxy
 import           Servant.API
 
+-- $setup
+-- >>> :set -XOverloadedStrings
+-- >>> :set -XFlexibleInstances
+-- >>> :set -XDeriveGeneric
+
 type GetDocument a
   = "document"
  :> Capture "collection-name" CollectionName
  :> Capture "document-key" DocumentKey
  :> Get '[JSON] (Document a)
 
+-- | getDocument by the key
+-- >> runDefault $ getDocument "example" "key"
+-- >>
 getDocument :: forall a. FromJSON a => CollectionName -> DocumentKey -> ArangoClientM (Document a)
 getDocument = arangoClient (Proxy @(GetDocument a))
 
@@ -41,6 +49,10 @@ type ReturnOld   = Maybe Bool
 type Silent      = Maybe Bool
 type IfMatch     = Maybe DocumentRevision
 type ReturnNew   = Maybe Bool
+
+-- | drop non existing document
+-- >> runDefault $ dropDocument "example" "key" (Just False) (Just False) (Just False) (Just (DocumentRevision "1"))
+-- >>Left (FailureResponse (Response {responseStatusCode = Status {statusCode = 404, statusMessage = "Not Found"}, responseBody = "{\"error\":true,\"errorMessage\":\"document not found\",\"code\":404,\"errorNum\":1202}", responseHeaders = fromList [("X-Content-Type-Options","nosniff"),("Server","ArangoDB"),("Connection","Keep-Alive"),("Content-Type","application/json; charset=utf-8"),("Content-Length","77")], responseHttpVersion = HTTP/1.1}))
 
 dropDocument :: CollectionName
                -> DocumentKey
@@ -74,20 +86,28 @@ updateDocument = arangoClient (Proxy @(UpdateDocument a))
 type CreateDocument a
   = "document"
  :> Capture "collection-name" CollectionName
- :> Capture "document-key" DocumentKey
  :> QueryParam "waitForSync" Bool
  :> QueryParam "returnNew" Bool
  :> QueryParam "silent" Bool
- :> ReqBody '[JSON] (Document a)
- :> Post '[JSON] (Document a)
+ :> ReqBody '[JSON] a
+ :> Post '[JSON] CreateDocumentResponse
 
-
+-- | test creating document
+-- >> import Data.Aeson
+-- >> import GHC.Generics
+-- >> import Data.Either (isRight)
+-- >> data Person = Person { name :: String } deriving Generic
+-- >> instance ToJSON Person
+-- >> instance FromJSON Person
+-- >> user = Person "Nick"
+-- >> result = runDefault $ createDocument "example" (Just False) (Just False) (Just False) user
+-- >> fmap isRight result
+-- >> True
 createDocument :: forall a. (ToJSON a, FromJSON a) =>
             CollectionName
-            -> DocumentKey
             -> WaitForSync
             -> ReturnNew
             -> Silent
-            -> Document a
-            -> ArangoClientM (Document a)
+            -> a
+            -> ArangoClientM CreateDocumentResponse
 createDocument = arangoClient (Proxy @(CreateDocument a))
