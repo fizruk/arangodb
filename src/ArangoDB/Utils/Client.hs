@@ -54,6 +54,7 @@ arangoClientEnv :: ArangoClientConfig -> IO ClientEnv
 arangoClientEnv config = ClientEnv
   <$> newManager defaultManagerSettings
   <*> pure (arangoBaseUrl config)
+  <*> pure Nothing
 
 -- | Run ArangoDB HTTP API requests for a given ArangoDB server.
 runArangoClientM :: ArangoClientConfig -> ArangoClientM a -> IO (Either ServantError a)
@@ -78,3 +79,5 @@ instance RunClient m => RunClient (ArangoClientT m) where
   throwServantError = ArangoClientT . ReaderT . const . throwServantError
   catchServantError (ArangoClientT (ReaderT f)) g
     = coerce $ catchServantError <$> f <*> flip (coerce g)
+  streamingRequest req = ArangoClientT $ ReaderT $ \mauth ->
+    streamingRequest $ maybe id basicAuthReq mauth $ req
