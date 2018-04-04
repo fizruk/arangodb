@@ -17,6 +17,20 @@ import           Servant.API
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XFlexibleInstances
 -- >>> :set -XDeriveGeneric
+-- >>> import Data.Aeson
+-- >>> import GHC.Generics
+-- >>> import Data.Either (isRight)
+-- >>> data Person = Person { name :: String } deriving Generic
+-- >>> instance ToJSON Person
+-- >>> instance FromJSON Person
+-- >>> user = Person "Nick"
+
+
+type WaitForSync = Maybe Bool
+type ReturnOld   = Maybe Bool
+type Silent      = Maybe Bool
+type IfMatch     = Maybe DocumentRevision
+type ReturnNew   = Maybe Bool
 
 type GetDocument a
   = "document"
@@ -43,13 +57,6 @@ type DropDocument
  :> Header "If-Match" DocumentRevision
  :> Delete '[JSON] (Document (OnlyField "old" (Maybe DocumentRevision)))
 
-
-type WaitForSync = Maybe Bool
-type ReturnOld   = Maybe Bool
-type Silent      = Maybe Bool
-type IfMatch     = Maybe DocumentRevision
-type ReturnNew   = Maybe Bool
-
 -- | drop non existing document
 -- >> runDefault $ dropDocument "example" "key" (Just False) (Just False) (Just False) (Just (DocumentRevision "1"))
 -- >>Left (FailureResponse (Response {responseStatusCode = Status {statusCode = 404, statusMessage = "Not Found"}, responseBody = "{\"error\":true,\"errorMessage\":\"document not found\",\"code\":404,\"errorNum\":1202}", responseHeaders = fromList [("X-Content-Type-Options","nosniff"),("Server","ArangoDB"),("Connection","Keep-Alive"),("Content-Type","application/json; charset=utf-8"),("Content-Length","77")], responseHttpVersion = HTTP/1.1}))
@@ -71,16 +78,18 @@ type UpdateDocument a
     :> QueryParam "returnOld" Bool
     :> QueryParam "silent" Bool
     :> Header "If-Match" DocumentRevision
-    :> Put '[JSON] (Document a)
+    :> ReqBody '[JSON] a
+    :> Put '[JSON] UpdateDocumentResponse
 
-updateDocument :: forall a. FromJSON a =>
+updateDocument :: forall a. (ToJSON a, FromJSON a) =>
             CollectionName
             -> DocumentKey
             -> WaitForSync
             -> ReturnOld
             -> Silent
             -> IfMatch
-            -> ArangoClientM (Document a)
+            -> a
+            -> ArangoClientM UpdateDocumentResponse
 updateDocument = arangoClient (Proxy @(UpdateDocument a))
 
 type CreateDocument a
@@ -93,16 +102,9 @@ type CreateDocument a
  :> Post '[JSON] CreateDocumentResponse
 
 -- | test creating document
--- >> import Data.Aeson
--- >> import GHC.Generics
--- >> import Data.Either (isRight)
--- >> data Person = Person { name :: String } deriving Generic
--- >> instance ToJSON Person
--- >> instance FromJSON Person
--- >> user = Person "Nick"
--- >> result = runDefault $ createDocument "example" (Just False) (Just False) (Just False) user
--- >> fmap isRight result
--- >> True
+-- >>> result = runDefault $ createDocument "example" (Just False) (Just False) (Just False) user
+-- >>> fmap isRight result
+-- True
 createDocument :: forall a. (ToJSON a, FromJSON a) =>
             CollectionName
             -> WaitForSync
