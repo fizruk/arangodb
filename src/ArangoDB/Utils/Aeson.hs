@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module ArangoDB.Utils.Aeson where
 
@@ -5,9 +7,15 @@ import Data.Aeson
 import Data.Aeson.Types (Parser)
 import Data.Aeson.TH (deriveJSON)
 import Data.Aeson.WithField (OnlyField (..))
+import Data.Proxy
+import qualified Data.Text as Text
+import GHC.TypeLits
 import qualified Data.ByteString.Lazy.Char8 as BSL8
 import ArangoDB.Utils.Naming (nameModifier)
 import Language.Haskell.TH (Name, Q, Dec, nameBase)
+
+-- $setup
+-- >>> :set -XDataKinds
 
 -- | Options to derive @'ToJSON'@/@'FromJSON'@ instances.
 --
@@ -99,3 +107,46 @@ unsafeToJSONObject x = case toJSON x of
     jsonType (Object _) = "JSON object"
     jsonType Null       = "JSON null"
 
+-- | An optional value wrapped in an object.
+newtype OptionalField (name :: Symbol) a = OptionalField
+  { getOptionalField :: Maybe a }
+  deriving (Show)
+
+-- |
+-- >>> encode (OptionalField (Just 123) :: OptionalField "total" Int)
+-- "{\"total\":123}"
+--
+-- 'Nothing' encodes as an object without a field:
+--
+-- >>> encode (OptionalField Nothing :: OptionalField "total" Int)
+-- "{}"
+instance (KnownSymbol name, ToJSON a) => ToJSON (OptionalField name a) where
+  toJSON (OptionalField Nothing) = object []
+  toJSON (OptionalField (Just x)) = object [ name .= x ]
+    where
+      name = Text.pack (symbolVal (Proxy :: Proxy name))
+
+-- |
+-- >>> decode "{\"total\": 123}" :: Maybe (OptionalField "total" Int)
+-- Just (OptionalField {getOptionalField = Just 123})
+--
+-- Missing field is decoded as 'Nothing':
+--
+-- >>> decode "{}" :: Maybe (OptionalField "total" Int)
+-- Just (OptionalField {getOptionalField = Nothing})
+--
+-- Other fields are ignored:
+--
+-- >>> decode "{\"count\": 123}" :: Maybe (OptionalField "total" Int)
+-- Just (OptionalField {getOptionalField = Nothing})
+--
+-- Decoding fails only when JSON value type is not 'Object':
+--
+-- >>> print (eitherDecode "123" :: Either String (OptionalField "total" Int))
+-- Left "Error in $: expected Object with an optional field \"total\", encountered Number"
+instance (KnownSymbol name, FromJSON a) => FromJSON (OptionalField name a) where
+  parseJSON = withObject ("Object with an optional field " ++ show nameStr) $
+    \o -> OptionalField <$> o .:? name
+    where
+      nameStr = symbolVal (Proxy :: Proxy name)
+      name = Text.pack nameStr
