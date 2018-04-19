@@ -2,25 +2,29 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}   -- needed for TypeError constaints
 module ArangoDB.Types where
 
 import Data.Aeson
-import Data.Monoid ((<>))
+import Data.Aeson.Unit
 import qualified Data.HashMap.Strict as HashMap
+import Data.Monoid ((<>))
 import Data.String (IsString)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Generics.SOP (Generic)
+import GHC.TypeLits
 import qualified GHC.Generics as GHC
 import Web.HttpApiData (ToHttpApiData)
-import           Data.Aeson.WithField  (OnlyField (..))
+
 import ArangoDB.Utils.Aeson
 import ArangoDB.Utils.Enum
-import Control.Monad
 
 -- * Collections
 
@@ -167,29 +171,23 @@ instance ToJSON a => ToJSON (Document a) where
         , "_rev" .= documentRev
         ]
 
-instance {-# OVERLAPPABLE #-} FromJSON a => FromJSON (Document a) where
+class HasObjectEncoding a
+instance {-# OVERLAPPING #-} TypeError ('Text "error") => HasObjectEncoding ()
+instance {-# OVERLAPPING #-} TypeError ('Text "error") => HasObjectEncoding Integer
+instance {-# OVERLAPPING #-} TypeError ('Text "error") => HasObjectEncoding Double
+instance {-# OVERLAPPING #-} TypeError ('Text "error") => HasObjectEncoding String
+instance FromJSON a => HasObjectEncoding a
+
+instance (FromJSON a, HasObjectEncoding a) => FromJSON (Document a) where
   parseJSON js = flip (withObject "Document") js $ \o -> Document
     <$> o .: "_id"
     <*> o .: "_key"
     <*> o .: "_rev"
     <*> parseJSON js
 
+type DropDocumentResponse = Document Unit
 
-type DeleteDocumentResponse = Document (OnlyField "old" (Maybe DocumentRevision))
-
-
-data CreateDocumentResponse = CreateDocumentResponse
-  { documentResponseId    :: DocumentId
-  , documentResponseKey   :: DocumentKey
-  , documentResponseRev   :: DocumentRevision
-  } deriving (Show)
-
-instance FromJSON CreateDocumentResponse where
-  parseJSON (Object v) =
-    CreateDocumentResponse <$> v .: "_id"
-                           <*> v .: "_key"
-                           <*> v .: "_rev"
-  parseJSON _ = mzero
+type CreateDocumentResponse = Document Unit
 
 -- Template Haskell derivations
 deriveJSON' ''CollectionInfo
