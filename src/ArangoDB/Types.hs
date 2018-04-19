@@ -9,7 +9,6 @@
 module ArangoDB.Types where
 
 import Data.Aeson
-import qualified Data.ByteString.Lazy.Char8 as BSL8
 import Data.Monoid ((<>))
 import qualified Data.HashMap.Strict as HashMap
 import Data.String (IsString)
@@ -154,38 +153,19 @@ data Document a = Document
   , documentValue :: a
   } deriving (Show)
 
+-- | A value of type @a@ can be encoded as an ArangoDB 'Document'
+-- only when its JSON encoding is an 'Object'.
+-- 
+-- See 'unsafeToJSONObject'.
 instance ToJSON a => ToJSON (Document a) where
-  toJSON Document{..} = Object $ case toJSON documentValue of
-    Object o -> HashMap.union specialFields o
-    value -> error $ unlines
-      [ ""
-      , "Can't create ArangoDB document from " ++ jsonType value
-      , "  expected JSON object, but got " ++ BSL8.unpack (encode value)
-      , ""
-      , "Hint: use OnlyField to turn your value into an object with a single field."
-      , "For instance:"
-      , ""
-      , "  import Data.Aeson.WithField (OnlyField(..))"
-      , "  import Data.Aeson (encode)"
-      , ""
-      , "  example = OnlyField (" ++ show value ++ ") :: OnlyField \"result\" Value"
-      , ""
-      , "  >>> encode example"
-      , "  " ++ show (encode (OnlyField value :: OnlyField "result" Value))
-      ]
+  toJSON Document{..} = Object
+    (HashMap.union specialFields (unsafeToJSONObject documentValue))
     where
       specialFields = HashMap.fromList
         [ "_id"  .= documentId
         , "_key" .= documentKey
         , "_rev" .= documentRev
         ]
-
-      jsonType (Array  _) = "JSON array"
-      jsonType (String _) = "JSON string"
-      jsonType (Number _) = "JSON number"
-      jsonType (Bool   _) = "JSON boolean value"
-      jsonType (Object _) = "JSON object"
-      jsonType Null       = "JSON null"
 
 instance {-# OVERLAPPABLE #-} FromJSON a => FromJSON (Document a) where
   parseJSON js = flip (withObject "Document") js $ \o -> Document
