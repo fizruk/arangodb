@@ -7,11 +7,14 @@
 -- See <https://docs.arangodb.com/3.3/HTTP/Document/>.
 module ArangoDB.Documents where
 
-import           ArangoDB.Types
-import           ArangoDB.Utils.Client
-import           Data.Aeson            (FromJSON, ToJSON)
-import           Data.Proxy
-import           Servant.API
+import ArangoDB.Types
+import ArangoDB.Utils.Client
+import Data.Aeson            (FromJSON, ToJSON)
+import Data.Aeson.Unit
+import Data.Aeson.WithField
+import Data.Proxy
+import Servant.API
+import Servant.Client (HasClient)
 
 -- $setup
 -- >>> :set -XOverloadedStrings
@@ -87,31 +90,46 @@ updateDocument :: forall a. (FromJSON a, HasObjectEncoding a) =>
             -> ArangoClientM (Document a)
 updateDocument = arangoClient (Proxy @(UpdateDocument a))
 
-type CreateDocument a
+-- | A general endpoint to create a document.
+type CreateDocument a response
   = "document"
- :> Capture "collection-name" CollectionName
- :> QueryParam "waitForSync" Bool
  :> QueryParam "returnNew" Bool
  :> QueryParam "silent" Bool
+ :> Capture "collection-name" CollectionName
  :> ReqBody '[JSON] a
- :> Post '[JSON] CreateDocumentResponse
+ :> QueryParam "waitForSync" Bool
+ :> Post '[JSON] response
 
--- | test creating document
--- >>> import Data.Aeson
--- >>> import GHC.Generics
--- >>> import Data.Either (isRight)
--- >>> data Person = Person { name :: String } deriving Generic
--- >>> instance ToJSON Person
--- >>> instance FromJSON Person
--- >>> user = Person "Nick"
--- >>> result = runDefault $ createDocument "example" (Just False) (Just False) (Just False) user
--- >>> fmap isRight result
--- >>> True
-createDocument :: forall a. (ToJSON a, FromJSON a) =>
-            CollectionName
-            -> WaitForSync
-            -> ReturnNew
-            -> Silent
-            -> a
-            -> ArangoClientM CreateDocumentResponse
-createDocument = arangoClient (Proxy @(CreateDocument a))
+-- | A general helper to create document in different ways.
+createDocument'
+  :: forall a response.
+    (ToJSON a, FromJSON response, HasObjectEncoding response
+    , HasClient ArangoClientM (Post '[JSON] response))
+  => ReturnNew
+  -> Silent
+  -> CollectionName
+  -> a
+  -> WaitForSync
+  -> ArangoClientM response
+createDocument' = arangoClient (Proxy @(CreateDocument a response))
+
+-- | Create a new document and return its metadata as @'Document' 'Unit'@.
+createDocument
+  :: ToJSON a
+  => CollectionName -> a -> WaitForSync -> ArangoClientM (Document Unit)
+createDocument = createDocument' Nothing Nothing
+
+-- | Create a new document and return an empty object (to save network traffic).
+createDocumentSilent
+  :: ToJSON a
+  => CollectionName -> a -> WaitForSync -> ArangoClientM Unit
+createDocumentSilent = createDocument' Nothing (Just True)
+
+-- | Create a new document and return the newly created document.
+createDocumentReturnNew
+  :: (ToJSON a, FromJSON a, HasObjectEncoding a)
+  => CollectionName
+  -> a
+  -> WaitForSync
+  -> ArangoClientM (Document (OnlyField "new" (Document a)))
+createDocumentReturnNew = createDocument' (Just True) Nothing
