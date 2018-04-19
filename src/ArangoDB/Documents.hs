@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeOperators       #-}
@@ -6,17 +7,21 @@
 -- See <https://docs.arangodb.com/3.3/HTTP/Document/>.
 module ArangoDB.Documents where
 
-import           ArangoDB.Types
-import           ArangoDB.Utils.Client
-import           Data.Aeson            (FromJSON, ToJSON)
-import           Data.Aeson.WithField  (OnlyField (..))
-import           Data.Proxy
-import           Servant.API
+import ArangoDB.Types
+import ArangoDB.Utils.Client
+import Data.Aeson            (FromJSON, ToJSON)
+import Data.Aeson.Unit
+import Data.Aeson.WithField
+import Data.Proxy
+import Servant.API
+import Servant.Client (HasClient)
 
 -- $setup
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XFlexibleInstances
 -- >>> :set -XDeriveGeneric
+
+-- * Read document
 
 type GetDocument a
   = "document"
@@ -24,13 +29,19 @@ type GetDocument a
  :> Capture "document-key" DocumentKey
  :> Get '[JSON] (Document a)
 
--- | getDocument by the key
--- >> runDefault $ getDocument "example" "key"
--- >>
-getDocument :: forall a. FromJSON a => CollectionName -> DocumentKey -> ArangoClientM (Document a)
+-- | Get document from a collection by its key.
+--
+getDocument
+  :: forall a. (FromJSON a, HasObjectEncoding a)
+  => CollectionName
+  -> DocumentKey
+  -> ArangoClientM (Document a)
 getDocument = arangoClient (Proxy @(GetDocument a))
 
-getDocumentById :: FromJSON a => DocumentId -> ArangoClientM (Document a)
+getDocumentById
+  :: (FromJSON a, HasObjectEncoding a)
+  => DocumentId
+  -> ArangoClientM (Document a)
 getDocumentById = uncurry getDocument . splitDocumentId
 
 type DropDocument
@@ -41,7 +52,7 @@ type DropDocument
  :> QueryParam "returnOld" Bool
  :> QueryParam "silent" Bool
  :> Header "If-Match" DocumentRevision
- :> Delete '[JSON] (Document (OnlyField "old" (Maybe DocumentRevision)))
+ :> Delete '[JSON] DropDocumentResponse
 
 
 type WaitForSync = Maybe Bool
@@ -50,17 +61,13 @@ type Silent      = Maybe Bool
 type IfMatch     = Maybe DocumentRevision
 type ReturnNew   = Maybe Bool
 
--- | drop non existing document
--- >> runDefault $ dropDocument "example" "key" (Just False) (Just False) (Just False) (Just (DocumentRevision "1"))
--- >>Left (FailureResponse (Response {responseStatusCode = Status {statusCode = 404, statusMessage = "Not Found"}, responseBody = "{\"error\":true,\"errorMessage\":\"document not found\",\"code\":404,\"errorNum\":1202}", responseHeaders = fromList [("X-Content-Type-Options","nosniff"),("Server","ArangoDB"),("Connection","Keep-Alive"),("Content-Type","application/json; charset=utf-8"),("Content-Length","77")], responseHttpVersion = HTTP/1.1}))
-
 dropDocument :: CollectionName
                -> DocumentKey
                -> WaitForSync
                -> ReturnOld
                -> Silent
                -> IfMatch
-               -> ArangoClientM DeleteDocumentResponse
+               -> ArangoClientM DropDocumentResponse
 dropDocument = arangoClient (Proxy @DropDocument)
 
 type UpdateDocument a
@@ -73,7 +80,7 @@ type UpdateDocument a
     :> Header "If-Match" DocumentRevision
     :> Put '[JSON] (Document a)
 
-updateDocument :: forall a. FromJSON a =>
+updateDocument :: forall a. (FromJSON a, HasObjectEncoding a) =>
             CollectionName
             -> DocumentKey
             -> WaitForSync
@@ -83,31 +90,46 @@ updateDocument :: forall a. FromJSON a =>
             -> ArangoClientM (Document a)
 updateDocument = arangoClient (Proxy @(UpdateDocument a))
 
-type CreateDocument a
+-- | A general endpoint to create a document.
+type CreateDocument a response
   = "document"
- :> Capture "collection-name" CollectionName
- :> QueryParam "waitForSync" Bool
  :> QueryParam "returnNew" Bool
  :> QueryParam "silent" Bool
+ :> Capture "collection-name" CollectionName
  :> ReqBody '[JSON] a
- :> Post '[JSON] CreateDocumentResponse
+ :> QueryParam "waitForSync" Bool
+ :> Post '[JSON] response
 
--- | test creating document
--- >> import Data.Aeson
--- >> import GHC.Generics
--- >> import Data.Either (isRight)
--- >> data Person = Person { name :: String } deriving Generic
--- >> instance ToJSON Person
--- >> instance FromJSON Person
--- >> user = Person "Nick"
--- >> result = runDefault $ createDocument "example" (Just False) (Just False) (Just False) user
--- >> fmap isRight result
--- >> True
-createDocument :: forall a. (ToJSON a, FromJSON a) =>
-            CollectionName
-            -> WaitForSync
-            -> ReturnNew
-            -> Silent
-            -> a
-            -> ArangoClientM CreateDocumentResponse
-createDocument = arangoClient (Proxy @(CreateDocument a))
+-- | A general helper to create document in different ways.
+createDocument'
+  :: forall a response.
+    (ToJSON a, FromJSON response, HasObjectEncoding response
+    , HasClient ArangoClientM (Post '[JSON] response))
+  => ReturnNew
+  -> Silent
+  -> CollectionName
+  -> a
+  -> WaitForSync
+  -> ArangoClientM response
+createDocument' = arangoClient (Proxy @(CreateDocument a response))
+
+-- | Create a new document and return its metadata as @'Document' 'Unit'@.
+createDocument
+  :: ToJSON a
+  => CollectionName -> a -> WaitForSync -> ArangoClientM (Document Unit)
+createDocument = createDocument' Nothing Nothing
+
+-- | Create a new document and return an empty object (to save network traffic).
+createDocumentSilent
+  :: ToJSON a
+  => CollectionName -> a -> WaitForSync -> ArangoClientM Unit
+createDocumentSilent = createDocument' Nothing (Just True)
+
+-- | Create a new document and return the newly created document.
+createDocumentReturnNew
+  :: (ToJSON a, FromJSON a, HasObjectEncoding a)
+  => CollectionName
+  -> a
+  -> WaitForSync
+  -> ArangoClientM (Document (OnlyField "new" (Document a)))
+createDocumentReturnNew = createDocument' (Just True) Nothing
