@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
@@ -5,12 +6,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DataKinds #-}
-
 module ArangoDB.Types where
 
-import Control.Applicative ((<|>))
 import Data.Aeson
+import qualified Data.ByteString.Lazy.Char8 as BSL8
 import Data.Monoid ((<>))
 import qualified Data.HashMap.Strict as HashMap
 import Data.String (IsString)
@@ -158,7 +157,22 @@ data Document a = Document
 instance ToJSON a => ToJSON (Document a) where
   toJSON Document{..} = Object $ case toJSON documentValue of
     Object o -> HashMap.union specialFields o
-    value -> HashMap.insert "value" value specialFields
+    value -> error $ unlines
+      [ ""
+      , "Can't create ArangoDB document from " ++ jsonType value
+      , "  expected JSON object, but got " ++ BSL8.unpack (encode value)
+      , ""
+      , "Hint: use OnlyField to turn your value into an object with a single field."
+      , "For instance:"
+      , ""
+      , "  import Data.Aeson.WithField (OnlyField(..))"
+      , "  import Data.Aeson (encode)"
+      , ""
+      , "  example = OnlyField (" ++ show value ++ ") :: OnlyField \"result\" Value"
+      , ""
+      , "  >>> encode example"
+      , "  " ++ show (encode (OnlyField value :: OnlyField "result" Value))
+      ]
     where
       specialFields = HashMap.fromList
         [ "_id"  .= documentId
@@ -166,12 +180,19 @@ instance ToJSON a => ToJSON (Document a) where
         , "_rev" .= documentRev
         ]
 
-instance FromJSON a => FromJSON (Document a) where
+      jsonType (Array  _) = "JSON array"
+      jsonType (String _) = "JSON string"
+      jsonType (Number _) = "JSON number"
+      jsonType (Bool   _) = "JSON boolean value"
+      jsonType (Object _) = "JSON object"
+      jsonType Null       = "JSON null"
+
+instance {-# OVERLAPPABLE #-} FromJSON a => FromJSON (Document a) where
   parseJSON js = flip (withObject "Document") js $ \o -> Document
     <$> o .: "_id"
     <*> o .: "_key"
     <*> o .: "_rev"
-    <*> (parseJSON js <|> o .: "value")
+    <*> parseJSON js
 
 
 type DeleteDocumentResponse = Document (OnlyField "old" (Maybe DocumentRevision))
