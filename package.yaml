@@ -39,6 +39,7 @@ dependencies:
 - template-haskell
 - unordered-containers
 - http-client
+- pretty-show
 
 ghc-options:
 - -Wall
