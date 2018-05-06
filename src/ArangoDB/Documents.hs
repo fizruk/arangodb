@@ -17,12 +17,11 @@ import           Servant.API
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XFlexibleInstances
 -- >>> :set -XDeriveGeneric
+-- >>> :set -XDeriveAnyClass
 -- >>> import Data.Aeson
 -- >>> import GHC.Generics
 -- >>> import Data.Either (isRight)
--- >>> data Person = Person { name :: String } deriving Generic
--- >>> instance ToJSON Person
--- >>> instance FromJSON Person
+-- >>> data Person = Person { name :: String } deriving (Show, Generic, ToJSON, FromJSON)
 -- >>> user = Person "Nick"
 -- >>> collectionName = "example"
 -- >>> createCollectionResult = runDefault $ createCollection collectionName
@@ -68,8 +67,9 @@ type GetDocument a
  :> Get '[JSON] (Document a)
 
 -- | getDocument by the key
--- >> getDocumentResult = runDefault $ getDocument collectionName docKey
--- >>
+-- >>> Right (person :: Document Person) <- runDefault $ getDocument collectionName docKey
+-- >>> documentValue person
+-- Person { name = "Nick" }
 getDocument :: forall a. FromJSON a => CollectionName -> DocumentKey -> ArangoClientM (Document a)
 getDocument = arangoClient (Proxy @(GetDocument a))
 
