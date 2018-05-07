@@ -18,11 +18,13 @@ import           Servant.API
 -- >>> :set -XFlexibleInstances
 -- >>> :set -XDeriveGeneric
 -- >>> :set -XDeriveAnyClass
+-- >>> :set -XScopedTypeVariables
 -- >>> import Data.Aeson
 -- >>> import GHC.Generics
--- >>> import Data.Either (isRight)
--- >>> data Person = Person { name :: String } deriving (Show, Generic, ToJSON, FromJSON)
--- >>> user = Person "Nick"
+-- >>> import Data.Either (isRight, isLeft)
+-- >>> import ArangoDB.Collections
+-- >>> data Person = Person { firstname :: String, lastname :: String } deriving (Show, Generic, ToJSON, FromJSON)
+-- >>> user = Person "Nick" "K."
 -- >>> collectionName = "example"
 -- >>> createCollectionResult = runDefault $ createCollection collectionName
 -- >>> fmap isRight createCollectionResult
@@ -45,11 +47,6 @@ type CreateDocument a
  :> ReqBody '[JSON] a
  :> Post '[JSON] CreateDocumentResponse
 
--- | test creating document
--- >>> createDocumentResult = runDefault $ createDocument collectionName (Just False) (Just False) (Just False) user
--- >>> fmap isRight createDocumentResult
--- True
--- >>> Right (Document docId docKey docRev _) <- createDocumentResult
 createDocument :: forall a. (ToJSON a, FromJSON a) =>
             CollectionName
             -> ReturnNew
@@ -66,10 +63,6 @@ type GetDocument a
  :> Capture "document-key" DocumentKey
  :> Get '[JSON] (Document a)
 
--- | getDocument by the key
--- >>> Right (person :: Document Person) <- runDefault $ getDocument collectionName docKey
--- >>> documentValue person
--- Person { name = "Nick" }
 getDocument :: forall a. FromJSON a => CollectionName -> DocumentKey -> ArangoClientM (Document a)
 getDocument = arangoClient (Proxy @(GetDocument a))
 
@@ -86,12 +79,7 @@ type DropDocument
  :> Header "If-Match" DocumentRevision
  :> Delete '[JSON] DropDocumentResponse
 
--- | drop non existing document
--- >>> runDefault $ dropDocument "example" (Just False)  (DocumentKey "key")  (Just False) (Just False) (Just (DocumentRevision "1"))
--- Left (FailureResponse (Response {responseStatusCode = Status {statusCode = 404, statusMessage = "Not Found"}, responseBody = "{\"error\":true,\"errorMessage\":\"document not found\",\"code\":404,\"errorNum\":1202}", responseHeaders = fromList [("X-Content-Type-Options","nosniff"),("Server","ArangoDB"),("Connection","Keep-Alive"),("Content-Type","application/json; charset=utf-8"),("Content-Length","77")], responseHttpVersion = HTTP/1.1}))
--- >>> dropResult = runDefault $ dropDocument collectionName (Just False)  docKey  (Just False) (Just False) (Just docRev)
--- >>> fmap isRight dropResult
--- True
+
 dropDocument :: CollectionName
                -> ReturnOld
                -> DocumentKey
@@ -112,12 +100,6 @@ type UpdateDocument a
     :> ReqBody '[JSON] a
     :> Put '[JSON] UpdateDocumentResponse
 
--- >>> user1 = Person "gang"
--- >>> createDocumentResult = runDefault $ createDocument collectionName (Just False) (Just False) (Just False) user
--- >>> Right (Document docId docKey docRev _) <- createDocumentResult
--- >>> updateResult = runDefault $ updateDocument collectionName (Just False)  docKey  (Just False) (Just False) (Just docRev) user1
--- >>> fmap isRight updateResult
--- True
 updateDocument :: forall a. (ToJSON a, FromJSON a) =>
             CollectionName
             -> ReturnOld
@@ -128,3 +110,27 @@ updateDocument :: forall a. (ToJSON a, FromJSON a) =>
             -> a
             -> ArangoClientM UpdateDocumentResponse
 updateDocument = arangoClient (Proxy @(UpdateDocument a))
+
+-- | Doctest for the functions above
+-- >>> createDocumentResult = runDefault $ createDocument collectionName (Just False) (Just False) (Just False) user
+-- >>> fmap isRight createDocumentResult
+-- True
+-- >>> Right (Document docId docKey docRev _) <- createDocumentResult
+-- >>> Right (person :: Document Person) <- runDefault $ getDocument collectionName docKey
+-- >>> documentValue person
+-- Person {firstname = "Nick", lastname = "K."}
+-- >>> failedDropResult = runDefault $ dropDocument "example" (Just False)  (DocumentKey "key")  (Just False) (Just False) (Just (DocumentRevision "1"))
+-- >>> fmap isLeft failedDropResult
+-- True
+-- >>> dropResult = runDefault $ dropDocument collectionName (Just False)  docKey  (Just False) (Just False) (Just docRev)
+-- >>> fmap isRight dropResult
+-- True
+-- >>> user1 = Person "gang" "w."
+-- >>> createDocumentResult = runDefault $ createDocument collectionName (Just False) (Just False) (Just False) user
+-- >>> Right (Document docId docKey docRev _) <- createDocumentResult
+-- >>> updateResult = runDefault $ updateDocument collectionName (Just False)  docKey  (Just False) (Just False) (Just docRev) user1
+-- >>> fmap isRight updateResult
+-- True
+-- >>> dropCollectionResult = runDefault $ dropCollection collectionName
+-- >>> fmap isRight dropCollectionResult
+-- True
