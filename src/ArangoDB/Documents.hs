@@ -9,7 +9,6 @@ module ArangoDB.Documents where
 import           ArangoDB.Types
 import           ArangoDB.Utils.Client
 import           Data.Aeson            (FromJSON, ToJSON)
-import           Data.Aeson.WithField  (OnlyField (..))
 import           Data.Proxy
 import           Servant.API
 
@@ -37,10 +36,9 @@ type Silent      = Maybe Bool
 type IfMatch     = Maybe DocumentRevision
 type ReturnNew   = Maybe Bool
 
-
 type CreateDocument a
   = "document"
- :> Capture "collection-name" CollectionName
+ :> Capture "collection-name" (TypedCollectionName a)
  :> QueryParam "returnNew" Bool
  :> QueryParam "waitForSync" Bool
  :> QueryParam "silent" Bool
@@ -48,7 +46,7 @@ type CreateDocument a
  :> Post '[JSON] CreateDocumentResponse
 
 createDocument :: forall a. (ToJSON a, FromJSON a) =>
-            CollectionName
+            (TypedCollectionName a)
             -> ReturnNew
             -> WaitForSync
             -> Silent
@@ -59,11 +57,11 @@ createDocument = arangoClient (Proxy @(CreateDocument a))
 
 type GetDocument a
   = "document"
- :> Capture "collection-name" CollectionName
+ :> Capture "collection-name" (TypedCollectionName a)
  :> Capture "document-key" DocumentKey
  :> Get '[JSON] (Document a)
 
-getDocument :: forall a. FromJSON a => CollectionName -> DocumentKey -> ArangoClientM (Document a)
+getDocument :: forall a. FromJSON a => (TypedCollectionName a) -> DocumentKey -> ArangoClientM (Document a)
 getDocument = arangoClient (Proxy @(GetDocument a))
 
 getDocumentById :: FromJSON a => DocumentId -> ArangoClientM (Document a)

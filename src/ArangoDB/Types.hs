@@ -6,6 +6,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeOperators       #-}
 
 module ArangoDB.Types where
 
@@ -137,10 +140,6 @@ mkDocumentId :: CollectionName -> DocumentKey -> DocumentId
 mkDocumentId (CollectionName name) (DocumentKey key)
   = DocumentId (name <> "/" <> key)
 
-splitDocumentId :: DocumentId -> (CollectionName, DocumentKey)
-splitDocumentId (DocumentId handle) = case Text.splitOn "/" handle of
-  [name, key] -> (CollectionName name, DocumentKey key)
-  _ -> error ("Impossible happened! Invalid document id: " ++ show handle)
 
 newtype DocumentKey = DocumentKey Text
   deriving newtype (IsString, Show, ToJSON, FromJSON, ToHttpApiData)
@@ -178,6 +177,17 @@ type DeleteDocumentResponse = Document (OnlyField "old" (Maybe DocumentRevision)
 type CreateDocumentResponse = Document Unit
 type UpdateDocumentResponse = Document Unit
 type DropDocumentResponse = Document Unit
+
+-- * Document
+
+newtype TypedCollectionName a = TypedCollectionName CollectionName deriving newtype (IsString, Eq, Show, ToHttpApiData, ToJSON, FromJSON)
+
+
+splitDocumentId :: DocumentId -> (TypedCollectionName CollectionName, DocumentKey)
+splitDocumentId (DocumentId handle) = case Text.splitOn "/" handle of
+  [name, key] -> (TypedCollectionName (CollectionName name), DocumentKey key)
+  _ -> error ("Impossible happened! Invalid document id: " ++ show handle)
+
 
 -- Template Haskell derivations
 deriveJSON' ''CollectionInfo
