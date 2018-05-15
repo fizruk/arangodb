@@ -64,7 +64,7 @@ type GetDocument a
 getDocument :: forall a. FromJSON a => (TypedCollectionName a) -> DocumentKey -> ArangoClientM (Document a)
 getDocument = arangoClient (Proxy @(GetDocument a))
 
-getDocumentById :: FromJSON a => DocumentId -> ArangoClientM (Document a)
+getDocumentById :: FromJSON a => DocumentId a -> ArangoClientM (Document a)
 getDocumentById = uncurry getDocument . splitDocumentId
 
 type DropDocument

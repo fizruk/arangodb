@@ -133,11 +133,11 @@ data CollectionProperties = CollectionProperties
 
 -- * Documents
 
-newtype DocumentId = DocumentId Text
+newtype DocumentId a = DocumentId Text
   deriving newtype (Show, ToJSON, FromJSON)
 
-mkDocumentId :: CollectionName -> DocumentKey -> DocumentId
-mkDocumentId (CollectionName name) (DocumentKey key)
+mkDocumentId :: (TypedCollectionName CollectionName) -> DocumentKey -> DocumentId a
+mkDocumentId (TypedCollectionName (CollectionName name)) (DocumentKey key)
   = DocumentId (name <> "/" <> key)
 
 
@@ -148,7 +148,7 @@ newtype DocumentRevision = DocumentRevision Text
   deriving newtype (Show, ToJSON, FromJSON, ToHttpApiData)
 
 data Document a = Document
-  { documentId    :: DocumentId
+  { documentId    :: DocumentId a
   , documentKey   :: DocumentKey
   , documentRev   :: DocumentRevision
   , documentValue :: a
@@ -183,7 +183,7 @@ type DropDocumentResponse = Document Unit
 newtype TypedCollectionName a = TypedCollectionName CollectionName deriving newtype (IsString, Eq, Show, ToHttpApiData, ToJSON, FromJSON)
 
 
-splitDocumentId :: DocumentId -> (TypedCollectionName CollectionName, DocumentKey)
+splitDocumentId :: DocumentId a -> (TypedCollectionName a, DocumentKey)
 splitDocumentId (DocumentId handle) = case Text.splitOn "/" handle of
   [name, key] -> (TypedCollectionName (CollectionName name), DocumentKey key)
   _ -> error ("Impossible happened! Invalid document id: " ++ show handle)
