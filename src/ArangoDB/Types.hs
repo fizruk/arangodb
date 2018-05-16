@@ -176,7 +176,7 @@ instance FromJSON a => FromJSON (Document a) where
 type DeleteDocumentResponse = Document (OnlyField "old" (Maybe DocumentRevision))
 type CreateDocumentResponse = Document Unit
 type UpdateDocumentResponse = Document Unit
-type DropDocumentResponse = Document Unit
+type DropDocumentResponse   = Document Unit
 
 -- * Document
 

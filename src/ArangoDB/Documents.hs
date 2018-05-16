@@ -16,15 +16,15 @@ import           Servant.API
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XFlexibleInstances
 -- >>> :set -XDeriveGeneric
--- >>> :set -XDeriveAnyClass
 -- >>> :set -XScopedTypeVariables
+-- >>> :set -XDeriveAnyClass
 -- >>> import Data.Aeson
 -- >>> import GHC.Generics
 -- >>> import Data.Either (isRight, isLeft)
 -- >>> import ArangoDB.Collections
 -- >>> data Person = Person { firstname :: String, lastname :: String } deriving (Show, Generic, ToJSON, FromJSON)
 -- >>> user = Person "Nick" "K."
--- >>> collectionName = "example"
+-- >>> collectionName = "Person"
 -- >>> createCollectionResult = runDefault $ createCollection collectionName
 -- >>> fmap isRight createCollectionResult
 -- True
@@ -67,29 +67,32 @@ getDocument = arangoClient (Proxy @(GetDocument a))
 getDocumentById :: FromJSON a => DocumentId a -> ArangoClientM (Document a)
 getDocumentById = uncurry getDocument . splitDocumentId
 
-type DropDocument
+type DropDocument a
   = "document"
- :> Capture "collection-name" CollectionName
+ :> Capture "collection-name" (TypedCollectionName a)
  :> QueryParam "returnOld" Bool
  :> Capture "document-key" DocumentKey
  :> QueryParam "waitForSync" Bool
  :> QueryParam "silent" Bool
  :> Header "If-Match" DocumentRevision
+ :> ReqBody '[JSON] a
  :> Delete '[JSON] DropDocumentResponse
 
 
-dropDocument :: CollectionName
+dropDocument :: forall a. (ToJSON a, FromJSON a) =>
+               (TypedCollectionName a)
                -> ReturnOld
                -> DocumentKey
                -> WaitForSync
                -> Silent
                -> IfMatch
+               -> a
                -> ArangoClientM DropDocumentResponse
-dropDocument = arangoClient (Proxy @DropDocument)
+dropDocument = arangoClient (Proxy @(DropDocument a))
 
 type UpdateDocument a
     = "document"
-    :> Capture "collection-name" CollectionName
+    :> Capture "collection-name" (TypedCollectionName a)
     :> QueryParam "returnOld" Bool
     :> Capture "document-key" DocumentKey
     :> QueryParam "waitForSync" Bool
@@ -99,7 +102,7 @@ type UpdateDocument a
     :> Put '[JSON] UpdateDocumentResponse
 
 updateDocument :: forall a. (ToJSON a, FromJSON a) =>
-            CollectionName
+            (TypedCollectionName a)
             -> ReturnOld
             -> DocumentKey
             -> WaitForSync
@@ -110,23 +113,23 @@ updateDocument :: forall a. (ToJSON a, FromJSON a) =>
 updateDocument = arangoClient (Proxy @(UpdateDocument a))
 
 -- | Doctest for the functions above
--- >>> createDocumentResult = runDefault $ createDocument collectionName (Just False) (Just False) (Just False) user
+-- >>> createDocumentResult = runDefault $ createDocument (TypedCollectionName (CollectionName collectionName)) (Just False) (Just False) (Just False) user
 -- >>> fmap isRight createDocumentResult
 -- True
 -- >>> Right (Document docId docKey docRev _) <- createDocumentResult
--- >>> Right (person :: Document Person) <- runDefault $ getDocument collectionName docKey
+-- >>> Right (person :: Document Person) <- runDefault $ getDocument (TypedCollectionName (CollectionName collectionName)) docKey
 -- >>> documentValue person
 -- Person {firstname = "Nick", lastname = "K."}
--- >>> failedDropResult = runDefault $ dropDocument "example" (Just False)  (DocumentKey "key")  (Just False) (Just False) (Just (DocumentRevision "1"))
+-- >>> failedDropResult = runDefault $ dropDocument (TypedCollectionName (CollectionName collectionName)) (Just False)  (DocumentKey "key")  (Just False) (Just False) (Just (DocumentRevision "1")) user
 -- >>> fmap isLeft failedDropResult
 -- True
--- >>> dropResult = runDefault $ dropDocument collectionName (Just False)  docKey  (Just False) (Just False) (Just docRev)
+-- >>> dropResult = runDefault $ dropDocument (TypedCollectionName (CollectionName collectionName)) (Just False)  docKey  (Just False) (Just False) (Just docRev) user
 -- >>> fmap isRight dropResult
 -- True
 -- >>> user1 = Person "gang" "w."
--- >>> createDocumentResult = runDefault $ createDocument collectionName (Just False) (Just False) (Just False) user
+-- >>> createDocumentResult = runDefault $ createDocument (TypedCollectionName (CollectionName collectionName)) (Just False) (Just False) (Just False) user
 -- >>> Right (Document docId docKey docRev _) <- createDocumentResult
--- >>> updateResult = runDefault $ updateDocument collectionName (Just False)  docKey  (Just False) (Just False) (Just docRev) user1
+-- >>> updateResult = runDefault $ updateDocument (TypedCollectionName (CollectionName collectionName)) (Just False)  docKey  (Just False) (Just False) (Just docRev) user1
 -- >>> fmap isRight updateResult
 -- True
 -- >>> dropCollectionResult = runDefault $ dropCollection collectionName
