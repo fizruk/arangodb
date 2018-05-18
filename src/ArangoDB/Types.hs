@@ -173,10 +173,12 @@ instance FromJSON a => FromJSON (Document a) where
     <*> (parseJSON js <|> o .: "value")
 
 
-type DeleteDocumentResponse = Document (OnlyField "old" (Maybe DocumentRevision))
-type CreateDocumentResponse = Document Unit
-type UpdateDocumentResponse = Document Unit
-type DropDocumentResponse   = Document Unit
+type DeleteDocumentResponse       = Document (OnlyField "old" (Maybe DocumentRevision))
+type CreateDocumentResponse       = Document Unit
+type UpdateDocumentResponse       = Document Unit
+type UpdateDocumentResponseFull a = Document (OnlyField "old" a)
+type DropDocumentResponse         = Document Unit
+type DropDocumentResponseFull   a = Document (OnlyField "old" a)
 
 -- * Document
 

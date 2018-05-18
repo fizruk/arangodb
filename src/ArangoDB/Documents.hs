@@ -99,7 +99,7 @@ type DropDocumentFull a
  :> QueryParam "silent" Bool
  :> Header "If-Match" DocumentRevision
  :> ReqBody '[JSON] a
- :> Delete '[JSON] (Document a)
+ :> Delete '[JSON] (DropDocumentResponseFull a)
 
 
 dropDocumentFull :: forall a. (ToJSON a, FromJSON a) =>
@@ -109,7 +109,7 @@ dropDocumentFull :: forall a. (ToJSON a, FromJSON a) =>
                -> Silent
                -> IfMatch
                -> a
-               -> ArangoClientM (Document a)
+               -> ArangoClientM (DropDocumentResponseFull a)
 dropDocumentFull typedCollectionName docKey waitForSync silent ifMatch doc = arangoClient (Proxy @(DropDocumentFull a)) typedCollectionName (Just True) docKey waitForSync silent ifMatch doc
 
 type UpdateDocument a
@@ -143,7 +143,7 @@ type UpdateDocumentFull a
     :> QueryParam "silent" Bool
     :> Header "If-Match" DocumentRevision
     :> ReqBody '[JSON] a
-    :> Put '[JSON] (Document a)
+    :> Put '[JSON] (UpdateDocumentResponseFull a)
 
 updateDocumentFull :: forall a. (ToJSON a, FromJSON a) =>
             (TypedCollectionName a)
@@ -152,7 +152,7 @@ updateDocumentFull :: forall a. (ToJSON a, FromJSON a) =>
             -> Silent
             -> IfMatch
             -> a
-            -> ArangoClientM (Document a)
+            -> ArangoClientM (UpdateDocumentResponseFull a)
 updateDocumentFull typedCollectionName docKey waitForSync silent ifMatch doc = arangoClient (Proxy @(UpdateDocumentFull a)) typedCollectionName (Just True) docKey waitForSync silent ifMatch doc
 
 -- | Doctest for the functions above
