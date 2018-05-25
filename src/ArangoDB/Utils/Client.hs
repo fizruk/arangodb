@@ -13,6 +13,7 @@ import Network.HTTP.Client (newManager, defaultManagerSettings)
 import Servant.API.BasicAuth
 import Servant.Client.Core
 import Servant.Client
+import Text.Show.Pretty (pPrint)
 
 import ArangoDB.Utils.Aeson (pPrintJSON)
 
@@ -77,6 +78,13 @@ runDefaultJSON m = do
   case res of
     Left err -> print err
     Right js -> pPrintJSON js
+
+runDefaultPretty :: Show a => ArangoClientM a -> IO ()
+runDefaultPretty m = do
+  res <- runDefault m
+  case res of
+    Left  err -> print err
+    Right val -> pPrint val
 
 newtype ArangoClientT m a = ArangoClientT (ReaderT (Maybe BasicAuthData) m a)
   deriving (Functor, Applicative, Monad)
