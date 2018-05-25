@@ -26,6 +26,10 @@ type CreateCollection
  :> ReqBody '[JSON] CreateCollectionRequest
  :> Post '[JSON] (CollectionInfo `WithFields` CollectionProperties)
 
+-- | Create a new collection.
+--
+-- >>> runDefault $ createCollection "example"
+-- Right (WithFields (CollectionInfo {collectionId = "...", collectionName = "example", collectionStatus = CollectionLoaded, collectionType = DocumentCollection, collectionIsSystem = False}) (CollectionProperties {collectionWaitForSync = False, collectionDoCompact = True, collectionJournalSize = ..., collectionKeyOptions = CollectionKeyOptions {collectionKeyType = KeyGeneratorTraditional, collectionKeyAllowUserKeys = True}, collectionIsVolatile = False, collectionNumberOfShards = Nothing, collectionShardKeys = Nothing, collectionReplicationFactor = Nothing}))
 createCollection
   :: CreateCollectionRequest
   -> ArangoClientM (CollectionInfo `WithFields` CollectionProperties)

@@ -2,10 +2,15 @@
 module ArangoDB.Utils.Aeson where
 
 import Data.Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Aeson.Types (Parser)
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.ByteString.Lazy.Char8 as BSL8
 import ArangoDB.Utils.Naming (nameModifier)
 import Language.Haskell.TH (Name, Q, Dec, nameBase)
+
+pPrintJSON :: ToJSON a => a -> IO ()
+pPrintJSON = BSL8.putStrLn . encodePretty
 
 -- | Options to derive @'ToJSON'@/@'FromJSON'@ instances.
 --

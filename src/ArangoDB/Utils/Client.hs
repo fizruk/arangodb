@@ -4,6 +4,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module ArangoDB.Utils.Client where
 
+import Data.Aeson (ToJSON)
 import Data.Coerce (coerce)
 import Data.Proxy
 import Control.Monad.Reader
@@ -12,6 +13,8 @@ import Network.HTTP.Client (newManager, defaultManagerSettings)
 import Servant.API.BasicAuth
 import Servant.Client.Core
 import Servant.Client
+
+import ArangoDB.Utils.Aeson (pPrintJSON)
 
 data ArangoClientConfig = ArangoClientConfig
   { arangoHost     :: String
@@ -67,6 +70,13 @@ arangoClient api = api `clientIn` (Proxy :: Proxy ArangoClientM)
 
 runDefault :: ArangoClientM a -> IO (Either ServantError a)
 runDefault = runArangoClientM defaultArangoClientConfig
+
+runDefaultJSON :: ToJSON a => ArangoClientM a -> IO ()
+runDefaultJSON m = do
+  res <- runDefault m
+  case res of
+    Left err -> print err
+    Right js -> pPrintJSON js
 
 newtype ArangoClientT m a = ArangoClientT (ReaderT (Maybe BasicAuthData) m a)
   deriving (Functor, Applicative, Monad)
