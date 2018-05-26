@@ -10,6 +10,12 @@ module ArangoDB.Documents (
 
   -- ** Update document
   updateDocument,
+  updateDocument_,
+
+  -- *** Methods with extra parameters
+  updateDocument',
+  updateDocumentReturnOld',
+  updateDocumentSilent',
 
   -- ** Drop document
   dropDocument,

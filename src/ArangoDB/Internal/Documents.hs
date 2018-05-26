@@ -61,7 +61,7 @@ type CreateDocument a
  :> QueryParam "silent" Bool
  :> Capture "collection-name" (TypedCollectionName a)
  :> ReqBody '[JSON] a
- :> Post '[JSON] CreateDocumentResponse
+ :> Post '[JSON] (Document Unit)
 
 -- | Create a new document in a given collection.
 createDocument :: (ToJSON a, FromJSON a) =>
@@ -76,8 +76,10 @@ createDocument'
   -> Silent
   -> TypedCollectionName a
   -> a
-  -> ArangoClientM CreateDocumentResponse
+  -> ArangoClientM (Document Unit)
 createDocument' = arangoClient (Proxy @(CreateDocument a))
+
+-- * Read documents
 
 type GetDocument a
   = "document"
@@ -98,7 +100,7 @@ getDocument = arangoClient (Proxy @(GetDocument a))
 getDocumentById :: FromJSON a => DocumentId a -> ArangoClientM (Document a)
 getDocumentById = uncurry getDocument . splitDocumentId
 
--- * Removing documents
+-- * Remove documents
 
 -- | Drop document endpoint and common parameters.
 type DropDocument' a api
@@ -116,7 +118,7 @@ type DropDocument a = DropDocument' a
 -- | Drop document endpoint that returns removed document.
 type DropDocumentReturnOld a = DropDocument' a
   ( QueryParam "returnOld" Bool :==: 'Just 'True
- :> Delete '[JSON] (Document a) )
+ :> Delete '[JSON] (Document (OnlyField "old" a)) )
 
 -- | Drop document endpoint that returns no content.
 type DropDocumentSilent a = DropDocument' a
@@ -128,7 +130,7 @@ dropDocument' :: forall a. TypedCollectionName a -> DocumentKey -> IfMatch -> Wa
 dropDocument' = arangoClient (Proxy @(DropDocument a))
 
 -- | Drop document endpoint with extra parameters, returning removed document.
-dropDocumentReturnOld' :: forall a. FromJSON a => TypedCollectionName a -> DocumentKey -> IfMatch -> WaitForSync -> ArangoClientM (Document a)
+dropDocumentReturnOld' :: forall a. FromJSON a => TypedCollectionName a -> DocumentKey -> IfMatch -> WaitForSync -> ArangoClientM (Document (OnlyField "old" a))
 dropDocumentReturnOld' = arangoClient (Proxy @(DropDocumentReturnOld a))
 
 -- | Drop document endpoint with extra parameters, returning no content.
@@ -143,72 +145,85 @@ dropDocument n k = dropDocument' n k Nothing Nothing
 dropDocument_ :: TypedCollectionName a -> DocumentKey -> ArangoClientM ()
 dropDocument_ n k = void (dropDocumentSilent' n k Nothing Nothing)
 
-type UpdateDocument a
-    = "document"
-    :> Capture "collection-name" (TypedCollectionName a)
-    :> QueryParam "returnOld" Bool
-    :> Capture "document-key" DocumentKey
-    :> QueryParam "waitForSync" Bool
-    :> QueryParam "silent" Bool
-    :> Header "If-Match" DocumentRevision
-    :> ReqBody '[JSON] a
-    :> Put '[JSON] UpdateDocumentResponse
+-- * Update document
 
-updateDocument :: forall a. (ToJSON a, FromJSON a) =>
-            (TypedCollectionName a)
-            -> ReturnOld
-            -> DocumentKey
-            -> WaitForSync
-            -> Silent
-            -> IfMatch
-            -> a
-            -> ArangoClientM UpdateDocumentResponse
-updateDocument = arangoClient (Proxy @(UpdateDocument a))
+type UpdateDocument' a api
+  = "document"
+  :> Capture "collection-name" (TypedCollectionName a)
+  :> Capture "document-key" DocumentKey
+  :> ReqBody '[JSON] a
+  :> Header "If-Match" DocumentRevision
+  :> QueryParam "waitForSync" Bool
+  :> QueryParam "keepNull" Bool
+  :> QueryParam "mergeObjects" Bool
+  :> api
 
-type UpdateDocumentFull a
-    = "document"
-    :> Capture "collection-name" (TypedCollectionName a)
-    :> QueryParam "returnOld" Bool
-    :> Capture "document-key" DocumentKey
-    :> QueryParam "waitForSync" Bool
-    :> QueryParam "silent" Bool
-    :> Header "If-Match" DocumentRevision
-    :> ReqBody '[JSON] a
-    :> Put '[JSON] (UpdateDocumentResponseFull a)
+type UpdateDocument a = UpdateDocument' a
+  ( Put '[JSON] (Document Unit) )
 
-updateDocumentFull :: forall a. (ToJSON a, FromJSON a) =>
-            (TypedCollectionName a)
-            -> DocumentKey
-            -> WaitForSync
-            -> Silent
-            -> IfMatch
-            -> a
-            -> ArangoClientM (UpdateDocumentResponseFull a)
-updateDocumentFull typedCollectionName docKey waitForSync silent ifMatch doc = arangoClient (Proxy @(UpdateDocumentFull a)) typedCollectionName (Just True) docKey waitForSync silent ifMatch doc
+type UpdateDocumentReturnOld a = UpdateDocument' a
+  ( QueryParam "returnOld" Bool :==: 'Just 'True
+ :> Put '[JSON] (Document (OnlyField "old" (Document a))) )
 
--- | Doctest for the functions above
--- >>> createDocumentResult = runDefault $ createDocument (TypedCollectionName collectionName) (Just False) (Just False) (Just False) user
--- >>> fmap isRight createDocumentResult
--- True
--- >>> Right (Document docId docKey docRev _) <- createDocumentResult
--- >>> Right (person :: Document Person) <- runDefault $ getDocument (TypedCollectionName collectionName) docKey
--- >>> documentValue person
--- Person {firstname = "Nick", lastname = "K."}
--- >>> failedDropResult = runDefault $ dropDocument (TypedCollectionName collectionName) (Just False)  (DocumentKey "key")  (Just False) (Just False) (Just (DocumentRevision "1")) user
--- >>> fmap isLeft failedDropResult
--- True
--- >>> dropResult = runDefault $ dropDocument (TypedCollectionName collectionName) (Just False)  docKey  (Just False) (Just False) (Just docRev) user
--- >>> fmap isRight dropResult
--- True
--- >>> user1 = Person "gang" "w."
--- >>> createDocumentResult = runDefault $ createDocument (TypedCollectionName collectionName) (Just False) (Just False) (Just False) user
--- >>> Right (Document docId docKey docRev _) <- createDocumentResult
--- >>> updateResult = runDefault $ updateDocument (TypedCollectionName collectionName) (Just False)  docKey  (Just False) (Just False) (Just docRev) user1
--- >>> fmap isRight updateResult
--- True
--- >>> dropCollectionResult = runDefault $ dropCollection collectionName
--- >>> fmap isRight dropCollectionResult
--- True
+type UpdateDocumentSilent a = UpdateDocument' a
+  ( QueryParam "silent" Bool :==: 'Just 'True
+ :> Put '[JSON] NoContent )
+
+updateDocument'
+  :: forall a. ToJSON a
+  => TypedCollectionName a
+  -> DocumentKey
+  -> a
+  -> IfMatch
+  -> WaitForSync
+  -> Maybe Bool -- keepNull
+  -> Maybe Bool -- mergeObjects
+  -> ArangoClientM (Document Unit)
+updateDocument' = arangoClient (Proxy @(UpdateDocument a))
+
+updateDocumentReturnOld'
+  :: forall a. (ToJSON a, FromJSON a)
+  => TypedCollectionName a
+  -> DocumentKey
+  -> a
+  -> IfMatch
+  -> WaitForSync
+  -> Maybe Bool -- keepNull
+  -> Maybe Bool -- mergeObjects
+  -> ArangoClientM (Document (OnlyField "old" (Document a)))
+updateDocumentReturnOld' = arangoClient (Proxy @(UpdateDocumentReturnOld a))
+
+updateDocumentSilent'
+  :: forall a. ToJSON a
+  => TypedCollectionName a
+  -> DocumentKey
+  -> a
+  -> IfMatch
+  -> WaitForSync
+  -> Maybe Bool -- keepNull
+  -> Maybe Bool -- mergeObjects
+  -> ArangoClientM NoContent
+updateDocumentSilent' = arangoClient (Proxy @(UpdateDocumentSilent a))
+
+-- | Update a document with default parameters,
+-- returning document info for the updated document.
+updateDocument
+  :: forall a. ToJSON a
+  => TypedCollectionName a
+  -> DocumentKey
+  -> a
+  -> ArangoClientM (Document Unit)
+updateDocument n k x = updateDocument' n k x Nothing Nothing Nothing Nothing
+
+-- | Update a document with default parameters, returning no content.
+updateDocument_
+  :: forall a. ToJSON a
+  => TypedCollectionName a
+  -> DocumentKey
+  -> a
+  -> ArangoClientM ()
+updateDocument_ n k x = void $
+  updateDocumentSilent' n k x Nothing Nothing Nothing Nothing
 
 -- * Documents
 
@@ -218,7 +233,6 @@ newtype DocumentId a = DocumentId Text
 mkDocumentId :: (TypedCollectionName a) -> DocumentKey -> DocumentId a
 mkDocumentId (TypedCollectionName name) (DocumentKey key)
   = DocumentId (name <> "/" <> key)
-
 
 newtype DocumentKey = DocumentKey Text
   deriving newtype (IsString, Show, ToJSON, FromJSON, ToHttpApiData)
@@ -251,18 +265,9 @@ instance FromJSON a => FromJSON (Document a) where
     <*> o .: "_rev"
     <*> (parseJSON js <|> o .: "value")
 
-
-type DeleteDocumentResponse       = Document (OnlyField "old" (Maybe DocumentRevision))
-type CreateDocumentResponse       = Document Unit
-type UpdateDocumentResponse       = Document Unit
-type UpdateDocumentResponseFull a = Document (OnlyField "old" a)
-type DropDocumentResponse         = Document Unit
-type DropDocumentResponseFull   a = Document (OnlyField "old" a)
-
 -- * Document
 
 newtype TypedCollectionName a = TypedCollectionName Text deriving newtype (IsString, Eq, Show, ToHttpApiData, ToJSON, FromJSON)
-
 
 splitDocumentId :: DocumentId a -> (TypedCollectionName a, DocumentKey)
 splitDocumentId (DocumentId handle) = case Text.splitOn "/" handle of
