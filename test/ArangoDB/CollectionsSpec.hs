@@ -1,18 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 module ArangoDB.CollectionsSpec where
 
-import ArangoDB.Utils.Client (runDefault)
-import ArangoDB.Collections
+import           ArangoDB.Collections
+import           ArangoDB.Utils.Client (runDefault)
 
-import Control.Applicative
+import           Control.Applicative
 
-import Data.Either (isRight)
-import Data.String (fromString)
+import           Data.Either           (isRight)
+import           Data.String           (fromString)
 
-import Test.Hspec
-import Test.Hspec.QuickCheck
-import Test.HUnit (assertEqual)
-import Test.QuickCheck
+import           Test.Hspec
+import           Test.Hspec.QuickCheck
+import           Test.HUnit            (assertEqual)
+import           Test.QuickCheck
 
 data NonSystemCollectionName = NonSystemCollectionName String
   deriving (Eq, Show)
