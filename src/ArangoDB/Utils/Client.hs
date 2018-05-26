@@ -1,21 +1,22 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RecordWildCards            #-}
 module ArangoDB.Utils.Client where
 
-import Data.Aeson (ToJSON)
-import Data.Coerce (coerce)
-import Data.Proxy
-import Control.Monad.Reader
-import Data.Monoid ((<>))
-import Network.HTTP.Client (newManager, defaultManagerSettings)
-import Servant.API.BasicAuth
-import Servant.Client.Core
-import Servant.Client
-import Text.Show.Pretty (pPrint)
+import           Control.Monad.Reader
+import           Data.Aeson            (ToJSON)
+import           Data.Coerce           (coerce)
+import           Data.Functor          (void)
+import           Data.Monoid           ((<>))
+import           Data.Proxy
+import           Network.HTTP.Client   (defaultManagerSettings, newManager)
+import           Servant.API.BasicAuth
+import           Servant.Client
+import           Servant.Client.Core
+import           Text.Show.Pretty      (pPrint)
 
-import ArangoDB.Utils.Aeson (pPrintJSON)
+import           ArangoDB.Utils.Aeson  (pPrintJSON)
 
 data ArangoClientConfig = ArangoClientConfig
   { arangoHost     :: String
@@ -72,6 +73,9 @@ arangoClient api = api `clientIn` (Proxy :: Proxy ArangoClientM)
 runDefault :: ArangoClientM a -> IO (Either ServantError a)
 runDefault = runArangoClientM defaultArangoClientConfig
 
+runDefault_ :: ArangoClientM a -> IO ()
+runDefault_ = void . runDefault
+
 runDefaultJSON :: ToJSON a => ArangoClientM a -> IO ()
 runDefaultJSON m = do
   res <- runDefault m
@@ -80,11 +84,7 @@ runDefaultJSON m = do
     Right js -> pPrintJSON js
 
 runDefaultPretty :: Show a => ArangoClientM a -> IO ()
-runDefaultPretty m = do
-  res <- runDefault m
-  case res of
-    Left  err -> print err
-    Right val -> pPrint val
+runDefaultPretty m = runDefault m >>= pPrint
 
 newtype ArangoClientT m a = ArangoClientT (ReaderT (Maybe BasicAuthData) m a)
   deriving (Functor, Applicative, Monad)
