@@ -27,8 +27,10 @@ custom-setup:
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
 - aeson
 - aeson-injector
+- aeson-pretty
 - generics-sop
 - http-api-data
 - mtl
@@ -39,6 +41,7 @@ dependencies:
 - template-haskell
 - unordered-containers
 - http-client
+- pretty-show
 
 ghc-options:
 - -Wall
