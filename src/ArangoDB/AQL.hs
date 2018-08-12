@@ -4,6 +4,8 @@ module ArangoDB.AQL (
   CursorRequest(..),
   CursorResponse(..),
   CursorId(..),
+
+  aql,
 ) where
 
 import           ArangoDB.Internal.AQL

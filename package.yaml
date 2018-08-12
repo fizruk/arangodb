@@ -34,6 +34,7 @@ dependencies:
 - generics-sop
 - http-api-data
 - mtl
+- interpolate
 - servant
 - servant-client-core
 - servant-client ==0.13.*

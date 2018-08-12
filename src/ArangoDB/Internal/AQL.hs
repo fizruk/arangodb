@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DuplicateRecordFields      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE QuasiQuotes                #-}
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -14,7 +16,11 @@ import           ArangoDB.Utils.Client
 import           Data.Aeson
 import           Data.Proxy
 import           Data.String
-import           Data.Text             (Text)
+import qualified Data.String.Interpolate.IsString as Interpolate
+import           Data.Text                        (Text)
+import           GHC.Generics                     (Generic)
+import           Language.Haskell.TH.Quote
+import           Language.Haskell.TH.Syntax
 import           Servant.API
 
 -- $setup
@@ -34,24 +40,27 @@ import           Servant.API
 
 type Cursor a
   = "cursor"
-  :> ReqBody '[JSON] CursorRequest
+  :> ReqBody '[JSON] (CursorRequest a)
   :> Post '[JSON] (CursorResponse a)
 
 newtype CursorId = CursorId Text
   deriving (IsString, Eq, Show, ToJSON, FromJSON)
 
-data CursorRequest = CursorRequest
+data CursorRequest a = CursorRequest
   { query     :: Text
   , count     :: Bool
   , batchSize :: Maybe Int
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
 
-instance IsString CursorRequest where
-  fromString s = CursorRequest
-    { query = fromString s
-    , count = False
-    , batchSize = Nothing
-    }
+defaultCursorRequest :: Text -> CursorRequest a
+defaultCursorRequest aqlText = CursorRequest
+  { query = aqlText
+  , count = False
+  , batchSize = Nothing
+  }
+
+instance IsString (CursorRequest a) where
+  fromString = defaultCursorRequest . fromString
 
 data CursorResponse a = CursorResponse
   { hasMore :: Bool
@@ -75,8 +84,32 @@ data CursorResponse a = CursorResponse
 -- >>> runDefault_ $ dropCollection "hs_cursors"
 cursor
   :: forall a. FromJSON a
-  => CursorRequest -> ArangoClientM (CursorResponse a)
+  => CursorRequest a -> ArangoClientM (CursorResponse a)
 cursor = arangoClient (Proxy @(Cursor a))
 
-deriveJSON' ''CursorRequest
+instance ToJSON (CursorRequest a) where
+  toJSON = genericToJSON (aesonOptions "CursorRequest")
+
 deriveJSON' ''CursorResponse
+
+aqlQExp :: String -> Q Exp
+aqlQExp aqlString =
+  [e| defaultCursorRequest $(quoteExp Interpolate.i aqlString) |]
+
+-- | A 'QuasiQuoter' that allows you to write arbitrary AQL queries.
+--
+-- >>> :set -XQuasiQuotes
+-- >>> :{
+-- [aql|
+--   FOR doc IN users
+--       RETURN doc
+-- |]
+-- :}
+-- CursorRequest {query = "\n   FOR doc IN users\n       RETURN doc\n ", count = False, batchSize = Nothing}
+aql :: QuasiQuoter
+aql = QuasiQuoter
+  { quoteExp  = aqlQExp
+  , quotePat  = error "aql QuasiQuoter used in pattern"
+  , quoteType = error "aql QuasiQuoter used in type"
+  , quoteDec  = error "aql QuasiQuoter used in declaration"
+  }
