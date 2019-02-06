@@ -37,7 +37,7 @@ dependencies:
 - interpolate
 - servant
 - servant-client-core
-- servant-client ==0.13.*
+- servant-client ==0.14.*
 - text
 - template-haskell
 - unordered-containers

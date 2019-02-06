@@ -1,9 +1,11 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -38,7 +40,8 @@ instance KnownSymbol s => KnownValue (s :: Symbol) where
   knownValue = symbolVal
 
 instance
-  ( HasClient m (param :> api)
+  ( HasClient m api
+  , HasClient m (param :> api)
   , Client m (param :> api) ~ (KnownType k -> Client m api)
   , KnownValue value
   ) => HasClient m ((param :==: (value :: k)) :> api) where
@@ -49,4 +52,6 @@ instance
     where
       api' = Proxy @(param :> api)
       value = knownValue (Proxy @value)
+
+  hoistClientMonad m _api f cl = hoistClientMonad m (Proxy @api) f cl
 

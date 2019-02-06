@@ -95,7 +95,5 @@ instance RunClient m => RunClient (ArangoClientT m) where
   runRequest req = ArangoClientT $ ReaderT $ \mauth ->
     runRequest $ maybe id basicAuthReq mauth $ req
   throwServantError = ArangoClientT . ReaderT . const . throwServantError
-  catchServantError (ArangoClientT (ReaderT f)) g
-    = coerce $ catchServantError <$> f <*> flip (coerce g)
   streamingRequest req = ArangoClientT $ ReaderT $ \mauth ->
     streamingRequest $ maybe id basicAuthReq mauth $ req
